@@ -26,17 +26,17 @@ supabase db push        # applies migrations/0001_schema.sql then 0002_rls.sql
   admins via the `is_admin()` security-definer function.
 
 ## 4. Create the three users
-In *Authentication → Users → Add user*, create each with the shared password
-`Anajaramillo2003` (and "Auto confirm"):
-- `jeronimo@tirepro.com.co`
-- `alejandro@tirepro.com.co`
-- `andres@tirepro.com.co`
+In *Authentication → Users → Add user* (check **Auto Confirm User** — email
+confirmation is on), create each with their password:
+- `jeronimo.morales@merquellantas.com` — `JeronimoMorales123` (admin)
+- `alejandro@merquellantas.com`
+- `andres@merquellantas.com`
 
 The `handle_new_user` trigger auto-creates their `profiles` row. Then promote
 Jerónimo to admin in the SQL editor:
 ```sql
 update profiles set role = 'admin', title = 'Head of Marketing'
-where email = 'jeronimo@tirepro.com.co';
+where email = 'jeronimo.morales@merquellantas.com';
 ```
 (Optionally set names/titles for the other two the same way.)
 

@@ -35,6 +35,7 @@ alter table reports         enable row level security;
 alter table activity_logs   enable row level security;
 alter table notifications   enable row level security;
 alter table budgets         enable row level security;
+alter table finance_categories enable row level security;
 
 -- ----------------------------------------------------------- profiles ---
 create policy "profiles readable by team"
@@ -132,3 +133,8 @@ create policy "system insert notifications"
 create policy "team read budgets" on budgets for select using (auth.role() = 'authenticated');
 create policy "admin manage budgets"
   on budgets for all using (is_admin()) with check (is_admin());
+
+-- finance_categories (team-readable; managed by admins)
+create policy "team read finance cats" on finance_categories for select using (auth.role() = 'authenticated');
+create policy "admin manage finance cats"
+  on finance_categories for all using (is_admin()) with check (is_admin());

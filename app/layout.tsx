@@ -9,8 +9,8 @@ const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"]
 
 export const metadata: Metadata = {
   title: {
-    default: "Merqueo MOS — Sistema Operativo de Marketing",
-    template: "%s · Merqueo MOS",
+    default: "Merquellantas MOS — Sistema Operativo de Marketing",
+    template: "%s · Merquellantas MOS",
   },
   description:
     "La única fuente de verdad del departamento de marketing: proyectos, tareas, trabajo recurrente, KPIs y reportes.",

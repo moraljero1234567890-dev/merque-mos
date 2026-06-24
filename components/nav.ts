@@ -10,6 +10,7 @@ import {
   Shield,
   Target,
   Users,
+  Wallet,
   type LucideIcon,
 } from "lucide-react";
 
@@ -30,6 +31,7 @@ export const PRIMARY_NAV: NavItem[] = [
   { label: "KPIs", href: "/kpis", icon: Target, shortcut: "K" },
   { label: "Reuniones", href: "/meetings", icon: Users, shortcut: "M" },
   { label: "Documentos", href: "/documents", icon: FileText },
+  { label: "Finanzas", href: "/finance", icon: Wallet, adminOnly: true },
   { label: "Reportes", href: "/reports", icon: BarChart3 },
 ];
 

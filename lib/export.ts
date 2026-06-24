@@ -103,11 +103,11 @@ export function exportPdf(title: string, bodyHtml: string) {
     @media print{body{padding:24px}}
   </style></head><body>
     <header>
-      <div class="brand"><span class="logo">M</span> Merqueo MOS</div>
+      <div class="brand"><span class="logo">M</span> Merquellantas MOS</div>
       <div class="muted">${date}</div>
     </header>
     ${bodyHtml}
-    <footer><span>Marketing Operating System</span><span>Confidential · Merqueo Tires</span></footer>
+    <footer><span>Marketing Operating System</span><span>Confidential · Merquellantas</span></footer>
   </body></html>`);
   w.document.close();
   w.focus();

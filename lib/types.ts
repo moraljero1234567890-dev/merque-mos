@@ -132,6 +132,7 @@ export interface RecurringTask {
   description: string;
   frequency: Frequency;
   assigneeId: string | null;
+  support?: string; // colaborador / apoyo (puede ser persona o equipo)
   estimatedHours: number;
   priority: Priority;
   department: Department;
@@ -260,4 +261,5 @@ export interface MosData {
   activity: ActivityLog[];
   notifications: Notification[];
   budgets: BudgetLine[];
+  financeCategories: string[];
 }

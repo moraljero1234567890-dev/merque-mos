@@ -362,14 +362,19 @@ function DefinitionRow({
       </div>
 
       <div className="mt-3 flex items-center justify-between">
-        {assignee ? (
-          <div className="flex items-center gap-1.5">
-            <Avatar id={assignee.id} name={assignee.name} size={22} />
-            <span className="text-xs text-muted-foreground">{assignee.name.split(" ")[0]}</span>
-          </div>
-        ) : (
-          <span className="text-xs text-muted-foreground">Sin asignar</span>
-        )}
+        <div className="flex min-w-0 items-center gap-1.5">
+          {assignee ? (
+            <>
+              <Avatar id={assignee.id} name={assignee.name} size={22} />
+              <span className="truncate text-xs text-muted-foreground">{assignee.name.split(" ")[0]}</span>
+            </>
+          ) : (
+            <span className="text-xs text-muted-foreground">Sin asignar</span>
+          )}
+          {r.support && (
+            <span className="truncate text-xs text-muted-foreground/70">· Apoyo: {r.support}</span>
+          )}
+        </div>
         <div className="flex items-center gap-1.5">
           <Button variant="ghost" size="sm" onClick={onRun} title="Generar la próxima ocurrencia ahora">
             <Play className="h-3.5 w-3.5" />
@@ -392,6 +397,7 @@ const blank = {
   description: "",
   frequency: "weekly" as Frequency,
   assigneeId: "",
+  support: "",
   department: DEPARTMENTS[0],
   priority: "medium" as Priority,
   estimatedHours: "1",
@@ -419,6 +425,7 @@ function RecurringComposer({
         description: editing.description,
         frequency: editing.frequency,
         assigneeId: editing.assigneeId ?? "",
+        support: editing.support ?? "",
         department: editing.department,
         priority: editing.priority,
         estimatedHours: String(editing.estimatedHours),
@@ -438,6 +445,7 @@ function RecurringComposer({
       description: form.description,
       frequency: form.frequency,
       assigneeId: form.assigneeId || null,
+      support: form.support.trim() || undefined,
       department: form.department as Department,
       priority: form.priority,
       estimatedHours: Number(form.estimatedHours) || 0,
@@ -500,6 +508,9 @@ function RecurringComposer({
                 </option>
               ))}
             </Select>
+          </Field>
+          <Field label="Apoyo / colaborador">
+            <Input value={form.support} onChange={(e) => set("support", e.target.value)} placeholder="Persona o equipo (opcional)" />
           </Field>
           <Field label="Departamento">
             <Select value={form.department} onChange={(e) => set("department", e.target.value)}>

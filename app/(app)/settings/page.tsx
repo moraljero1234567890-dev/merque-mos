@@ -418,7 +418,7 @@ function WorkspacePanel({
   isAdmin: boolean;
 }) {
   const rows: { label: string; value: string }[] = [
-    { label: "Nombre del espacio de trabajo", value: "Merqueo Tires" },
+    { label: "Nombre del espacio de trabajo", value: "Merquellantas" },
     { label: "Tiendas", value: "26 tiendas" },
     { label: "Tamaño del equipo", value: `${teamSize} ${teamSize === 1 ? "miembro" : "miembros"}` },
     { label: "Tu rol", value: role === "admin" ? "Administrador" : "Miembro" },

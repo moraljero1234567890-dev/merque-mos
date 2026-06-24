@@ -15,9 +15,14 @@ const FEATURES = [
 
 // Demo-mode users. In live mode, Supabase Auth manages identities.
 const DEMO_USERS: Record<string, string> = {
-  "jeronimo@tirepro.com.co": "u1",
-  "alejandro@tirepro.com.co": "u2",
-  "andres@tirepro.com.co": "u3",
+  "jeronimo.morales@merquellantas.com": "u1",
+  "alejandro@merquellantas.com": "u2",
+  "andres@merquellantas.com": "u3",
+};
+
+// Pre-provisioned accounts (work immediately on any device, no first-time setup).
+const SEEDED_CREDENTIALS: Record<string, string> = {
+  "jeronimo.morales@merquellantas.com": "JeronimoMorales123",
 };
 
 type Mode = "idle" | "signin" | "create" | "unknown";
@@ -49,7 +54,7 @@ function LoginInner() {
     const e = email.trim().toLowerCase();
     if (!e.includes("@")) return setMode("idle");
     if (!(e in DEMO_USERS)) return setMode("unknown");
-    setMode(hasPassword(e) ? "signin" : "create");
+    setMode(SEEDED_CREDENTIALS[e] || hasPassword(e) ? "signin" : "create");
   }, [email, live]);
 
   const submit = async (e: React.FormEvent) => {
@@ -75,12 +80,20 @@ function LoginInner() {
     const key = email.trim().toLowerCase();
     const userId = DEMO_USERS[key];
     if (!userId) {
-      setError("No encontramos ese correo. Usa tu correo @tirepro.com.co.");
+      setError("No encontramos ese correo. Usa tu correo @merquellantas.com.");
       setLoading(false);
       return;
     }
 
-    if (!hasPassword(key)) {
+    const seeded = SEEDED_CREDENTIALS[key];
+    if (seeded) {
+      // Pre-provisioned account — fixed password.
+      if (password !== seeded) {
+        setError("Contraseña incorrecta.");
+        setLoading(false);
+        return;
+      }
+    } else if (!hasPassword(key)) {
       // First time — create a password.
       if (password.length < 6) {
         setError("La contraseña debe tener al menos 6 caracteres.");
@@ -124,7 +137,7 @@ function LoginInner() {
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
             <Boxes className="h-5 w-5" />
           </div>
-          <span className="text-sm font-semibold tracking-tight">Merqueo MOS</span>
+          <span className="text-sm font-semibold tracking-tight">Merquellantas MOS</span>
         </div>
         <div className="relative max-w-md">
           <h1 className="text-3xl font-semibold tracking-tight">
@@ -152,7 +165,7 @@ function LoginInner() {
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
               <Boxes className="h-5 w-5" />
             </div>
-            <span className="text-sm font-semibold">Merqueo MOS</span>
+            <span className="text-sm font-semibold">Merquellantas MOS</span>
           </div>
           <h2 className="text-xl font-semibold tracking-tight">
             {creating ? "Crea tu contraseña" : "Hola de nuevo"}
@@ -170,7 +183,7 @@ function LoginInner() {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="tu@tirepro.com.co"
+                placeholder="tu@merquellantas.com"
                 autoComplete="email"
               />
             </div>
@@ -198,7 +211,7 @@ function LoginInner() {
             )}
             {mode === "unknown" && (
               <p className="text-xs text-muted-foreground">
-                Usa tu correo corporativo <span className="font-medium text-foreground">@tirepro.com.co</span>.
+                Usa tu correo corporativo <span className="font-medium text-foreground">@merquellantas.com</span>.
               </p>
             )}
             {error && (

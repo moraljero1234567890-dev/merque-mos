@@ -28,9 +28,9 @@ import type {
   TaskStatus,
 } from "./types";
 
-// v2 — real Tirepro team + recurring catalog, no dummy data. Bumping the key
-// retires any stale v1 demo data cached in a returning user's browser.
-const STORAGE_KEY = "mos:data:v2";
+// v3 — Merquellantas team (@merquellantas.com), revised recurring catalog with
+// support/priority, and finance categories. Bumping retires stale cached data.
+const STORAGE_KEY = "mos:data:v3";
 const USER_KEY = "mos:user:v1";
 
 function hydrate(): MosData {
@@ -42,6 +42,7 @@ function hydrate(): MosData {
         const parsed = JSON.parse(raw) as MosData;
         // Forward-compatible defaults for fields added after this blob was saved.
         parsed.budgets = parsed.budgets ?? [];
+        parsed.financeCategories = parsed.financeCategories ?? [];
         // Top up recurring occurrences since last visit.
         const fresh = generateOccurrences(parsed.recurring, parsed.tasks);
         parsed.tasks = [...parsed.tasks, ...fresh];
@@ -97,10 +98,12 @@ interface MosContextValue {
   createAnnouncement: (title: string, body: string, pinned?: boolean) => void;
   markAllNotificationsRead: () => void;
 
-  // budget
+  // budget / finance
   createBudget: (input: Partial<BudgetLine> & { concept: string }) => void;
   updateBudget: (id: string, patch: Partial<BudgetLine>) => void;
   deleteBudget: (id: string) => void;
+  addFinanceCategory: (name: string) => void;
+  removeFinanceCategory: (name: string) => void;
 
   resetDemo: () => void;
 }
@@ -420,6 +423,20 @@ export function MosProvider({ children }: { children: React.ReactNode }) {
       setData((d) => (d ? { ...d, budgets: d.budgets.filter((b) => b.id !== id) } : d));
     };
 
+    const addFinanceCategory: MosContextValue["addFinanceCategory"] = (name) => {
+      const n = name.trim();
+      if (!n) return;
+      setData((d) =>
+        d && !d.financeCategories.includes(n)
+          ? { ...d, financeCategories: [...d.financeCategories, n] }
+          : d,
+      );
+    };
+
+    const removeFinanceCategory: MosContextValue["removeFinanceCategory"] = (name) => {
+      setData((d) => (d ? { ...d, financeCategories: d.financeCategories.filter((c) => c !== name) } : d));
+    };
+
     const resetDemo = () => {
       try {
         window.localStorage.removeItem(STORAGE_KEY);
@@ -458,6 +475,8 @@ export function MosProvider({ children }: { children: React.ReactNode }) {
       createBudget,
       updateBudget,
       deleteBudget,
+      addFinanceCategory,
+      removeFinanceCategory,
       resetDemo,
     };
   }, [data, currentUserId]); // eslint-disable-line react-hooks/exhaustive-deps

@@ -336,7 +336,7 @@ export default function ReportsPage() {
     exportPdf(
       "Scorecard del departamento",
       `<h1>Scorecard del departamento</h1>` +
-        `<p class="muted">Merqueo MOS · Generado ${format(
+        `<p class="muted">Merquellantas MOS · Generado ${format(
           new Date(),
           "d 'de' MMMM 'de' yyyy",
           { locale: es },
