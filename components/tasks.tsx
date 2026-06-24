@@ -1,0 +1,350 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import { format, isBefore, isToday, startOfDay } from "date-fns";
+import { Clock, MessageSquare, Paperclip, Repeat, Trash2 } from "lucide-react";
+import { useMos } from "@/lib/store";
+import { DEPARTMENTS, PRIORITIES, TASK_STATUSES } from "@/lib/types";
+import type { Task, TaskStatus } from "@/lib/types";
+import { TASK_STATUS_META } from "@/lib/labels";
+import {
+  Avatar,
+  Button,
+  Dot,
+  Field,
+  Input,
+  Modal,
+  Select,
+  Separator,
+  Textarea,
+} from "./ui";
+import { PriorityBadge } from "./badges";
+import { cn } from "@/lib/utils";
+
+export function dueMeta(task: Task) {
+  if (!task.dueDate || task.status === "done") return null;
+  const d = startOfDay(new Date(task.dueDate));
+  const overdue = isBefore(d, startOfDay(new Date()));
+  const today = isToday(d);
+  return {
+    overdue,
+    today,
+    label: format(d, "MMM d"),
+    tone: overdue ? "text-danger" : today ? "text-warning" : "text-muted-foreground",
+  };
+}
+
+export function TaskRow({
+  task,
+  onOpen,
+  showProject = true,
+}: {
+  task: Task;
+  onOpen: (id: string) => void;
+  showProject?: boolean;
+}) {
+  const { data, moveTask } = useMos();
+  const assignee = data.profiles.find((p) => p.id === task.assigneeId);
+  const project = data.projects.find((p) => p.id === task.projectId);
+  const due = dueMeta(task);
+  const done = task.status === "done";
+
+  return (
+    <div
+      onClick={() => onOpen(task.id)}
+      className="group flex cursor-pointer items-center gap-3 px-3 py-2.5 transition-colors hover:bg-muted/50"
+    >
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          moveTask(task.id, done ? "todo" : "done");
+        }}
+        className={cn(
+          "flex h-4 w-4 shrink-0 items-center justify-center rounded-full border transition-colors",
+          done ? "border-success bg-success text-white" : "border-border-strong hover:border-primary",
+        )}
+        aria-label="Toggle done"
+      >
+        {done && (
+          <svg viewBox="0 0 12 12" className="h-2.5 w-2.5" fill="none" stroke="currentColor" strokeWidth={2.5}>
+            <path d="M2.5 6.2 4.8 8.5 9.5 3.5" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        )}
+      </button>
+
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-2">
+          <span className={cn("truncate text-sm font-medium", done && "text-muted-foreground line-through")}>
+            {task.title}
+          </span>
+          {task.recurringId && <Repeat className="h-3 w-3 shrink-0 text-muted-foreground" />}
+        </div>
+        {showProject && project && (
+          <span className="text-xs text-muted-foreground">{project.name}</span>
+        )}
+      </div>
+
+      <div className="hidden items-center gap-2 text-xs text-muted-foreground sm:flex">
+        {task.estimatedHours > 0 && (
+          <span className="inline-flex items-center gap-1">
+            <Clock className="h-3 w-3" />
+            {task.estimatedHours}h
+          </span>
+        )}
+      </div>
+
+      <div className="hidden md:block">
+        <PriorityBadge priority={task.priority} />
+      </div>
+
+      {due && <span className={cn("hidden text-xs font-medium sm:inline", due.tone)}>{due.label}</span>}
+
+      {assignee && <Avatar id={assignee.id} name={assignee.name} size={24} />}
+    </div>
+  );
+}
+
+const empty = {
+  title: "",
+  description: "",
+  assigneeId: "",
+  projectId: "",
+  status: "todo" as TaskStatus,
+  priority: "medium",
+  dueDate: "",
+  estimatedHours: "1",
+  actualHours: "0",
+  notes: "",
+};
+
+export function TaskComposer({
+  open,
+  onClose,
+  taskId,
+  defaults,
+}: {
+  open: boolean;
+  onClose: () => void;
+  taskId?: string | null;
+  defaults?: Partial<typeof empty>;
+}) {
+  const { data, me, createTask, updateTask, deleteTask, addComment, moveTask } = useMos();
+  const editing = useMemo(() => data.tasks.find((t) => t.id === taskId), [data.tasks, taskId]);
+  const [form, setForm] = useState(empty);
+  const [comment, setComment] = useState("");
+
+  useEffect(() => {
+    if (!open) return;
+    if (editing) {
+      setForm({
+        title: editing.title,
+        description: editing.description ?? "",
+        assigneeId: editing.assigneeId ?? "",
+        projectId: editing.projectId ?? "",
+        status: editing.status,
+        priority: editing.priority,
+        dueDate: editing.dueDate ?? "",
+        estimatedHours: String(editing.estimatedHours),
+        actualHours: String(editing.actualHours),
+        notes: editing.notes ?? "",
+      });
+    } else {
+      setForm({ ...empty, assigneeId: me.id, ...defaults });
+    }
+  }, [open, editing, me.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const set = (k: keyof typeof empty, v: string) => setForm((f) => ({ ...f, [k]: v }));
+
+  const save = () => {
+    if (!form.title.trim()) return;
+    const payload = {
+      title: form.title.trim(),
+      description: form.description,
+      assigneeId: form.assigneeId || null,
+      projectId: form.projectId || null,
+      status: form.status,
+      priority: form.priority as Task["priority"],
+      dueDate: form.dueDate || null,
+      estimatedHours: Number(form.estimatedHours) || 0,
+      actualHours: Number(form.actualHours) || 0,
+      notes: form.notes,
+    };
+    if (editing) updateTask(editing.id, payload);
+    else createTask(payload);
+    onClose();
+  };
+
+  const comments = data.comments.filter((c) => c.taskId === taskId);
+
+  return (
+    <Modal
+      open={open}
+      onClose={onClose}
+      title={editing ? "Task" : "New task"}
+      size="lg"
+      footer={
+        <>
+          {editing && (
+            <Button
+              variant="ghost"
+              className="mr-auto text-danger hover:bg-danger/10"
+              onClick={() => {
+                deleteTask(editing.id);
+                onClose();
+              }}
+            >
+              <Trash2 className="h-4 w-4" />
+              Delete
+            </Button>
+          )}
+          <Button variant="outline" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button onClick={save}>{editing ? "Save" : "Create task"}</Button>
+        </>
+      }
+    >
+      <div className="space-y-4">
+        <Field label="Title">
+          <Input value={form.title} onChange={(e) => set("title", e.target.value)} placeholder="What needs to be done?" autoFocus />
+        </Field>
+        <Field label="Description">
+          <Textarea value={form.description} onChange={(e) => set("description", e.target.value)} placeholder="Add detail…" />
+        </Field>
+
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Status">
+            <Select value={form.status} onChange={(e) => set("status", e.target.value)}>
+              {TASK_STATUSES.map((s) => (
+                <option key={s} value={s}>
+                  {TASK_STATUS_META[s].label}
+                </option>
+              ))}
+            </Select>
+          </Field>
+          <Field label="Priority">
+            <Select value={form.priority} onChange={(e) => set("priority", e.target.value)}>
+              {PRIORITIES.map((p) => (
+                <option key={p} value={p}>
+                  {p[0].toUpperCase() + p.slice(1)}
+                </option>
+              ))}
+            </Select>
+          </Field>
+          <Field label="Assignee">
+            <Select value={form.assigneeId} onChange={(e) => set("assigneeId", e.target.value)}>
+              <option value="">Unassigned</option>
+              {data.profiles.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name}
+                </option>
+              ))}
+            </Select>
+          </Field>
+          <Field label="Project">
+            <Select value={form.projectId} onChange={(e) => set("projectId", e.target.value)}>
+              <option value="">No project</option>
+              {data.projects.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name}
+                </option>
+              ))}
+            </Select>
+          </Field>
+          <Field label="Due date">
+            <Input type="date" value={form.dueDate} onChange={(e) => set("dueDate", e.target.value)} />
+          </Field>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Est. hours">
+              <Input type="number" min={0} step={0.5} value={form.estimatedHours} onChange={(e) => set("estimatedHours", e.target.value)} />
+            </Field>
+            <Field label="Actual">
+              <Input type="number" min={0} step={0.5} value={form.actualHours} onChange={(e) => set("actualHours", e.target.value)} />
+            </Field>
+          </div>
+        </div>
+
+        <Field label="Notes / blockers">
+          <Textarea value={form.notes} onChange={(e) => set("notes", e.target.value)} placeholder="Log a blocker or context…" className="min-h-[60px]" />
+        </Field>
+
+        {editing && (
+          <>
+            <div className="flex flex-wrap gap-1.5">
+              {TASK_STATUSES.map((s) => (
+                <button
+                  key={s}
+                  onClick={() => {
+                    moveTask(editing.id, s);
+                    set("status", s);
+                  }}
+                  className={cn(
+                    "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium transition-colors",
+                    form.status === s ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground hover:bg-muted",
+                  )}
+                >
+                  <Dot color={TASK_STATUS_META[s].dot} />
+                  {TASK_STATUS_META[s].label}
+                </button>
+              ))}
+            </div>
+
+            <Separator />
+
+            <div>
+              <div className="mb-2 flex items-center gap-2 text-sm font-medium">
+                <MessageSquare className="h-4 w-4 text-muted-foreground" />
+                Comments
+                <span className="text-muted-foreground">{comments.length}</span>
+              </div>
+              <div className="space-y-3">
+                {comments.map((c) => {
+                  const author = data.profiles.find((p) => p.id === c.authorId);
+                  return (
+                    <div key={c.id} className="flex gap-2.5">
+                      <Avatar id={c.authorId} name={author?.name ?? "?"} size={26} />
+                      <div className="min-w-0 flex-1 rounded-lg bg-muted px-3 py-2">
+                        <div className="flex items-center gap-2 text-xs">
+                          <span className="font-medium">{author?.name}</span>
+                          <span className="text-muted-foreground">{format(new Date(c.createdAt), "MMM d, HH:mm")}</span>
+                        </div>
+                        <p className="mt-0.5 text-sm">{c.body}</p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="mt-3 flex gap-2">
+                <Input
+                  value={comment}
+                  onChange={(e) => setComment(e.target.value)}
+                  placeholder="Write a comment…"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && comment.trim()) {
+                      addComment(editing.id, comment.trim());
+                      setComment("");
+                    }
+                  }}
+                />
+                <Button
+                  variant="secondary"
+                  onClick={() => {
+                    if (comment.trim()) {
+                      addComment(editing.id, comment.trim());
+                      setComment("");
+                    }
+                  }}
+                >
+                  Send
+                </Button>
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+    </Modal>
+  );
+}
+
+// Re-export for convenience in pages that build their own composers.
+export { DEPARTMENTS };
