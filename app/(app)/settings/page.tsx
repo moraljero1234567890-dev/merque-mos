@@ -8,6 +8,7 @@ import {
   Building2,
   Check,
   Info,
+  KeyRound,
   Monitor,
   Moon,
   Palette,
@@ -34,6 +35,7 @@ import { cn } from "@/lib/utils";
 
 type SectionId =
   | "profile"
+  | "security"
   | "appearance"
   | "notifications"
   | "workspace"
@@ -42,6 +44,7 @@ type SectionId =
 
 const SECTIONS: { id: SectionId; label: string; icon: typeof User }[] = [
   { id: "profile", label: "Perfil", icon: User },
+  { id: "security", label: "Seguridad", icon: KeyRound },
   { id: "appearance", label: "Apariencia", icon: Palette },
   { id: "notifications", label: "Notificaciones", icon: Bell },
   { id: "workspace", label: "Espacio de trabajo", icon: Building2 },
@@ -186,6 +189,7 @@ export default function SettingsPage() {
         {/* Panels */}
         <div className="min-w-0 space-y-6">
           {active === "profile" && <ProfilePanel />}
+          {active === "security" && <SecurityPanel />}
           {active === "appearance" && (
             <AppearancePanel tiles={themeTiles} theme={theme} setTheme={setTheme} />
           )}
@@ -313,6 +317,55 @@ function ProfilePanel() {
           </p>
         </div>
       </div>
+    </Card>
+  );
+}
+
+/* ---------------------------------------------------------------- Security */
+
+function SecurityPanel() {
+  const { me, changeMyPassword } = useMos();
+  const [pw, setPw] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setMsg(null);
+    if (pw.length < 6) return setMsg({ ok: false, text: "La contraseña debe tener al menos 6 caracteres." });
+    if (pw !== confirm) return setMsg({ ok: false, text: "Las contraseñas no coinciden." });
+    setLoading(true);
+    const { error } = await changeMyPassword(pw);
+    setLoading(false);
+    if (error) return setMsg({ ok: false, text: error });
+    setPw("");
+    setConfirm("");
+    setMsg({ ok: true, text: "Contraseña actualizada." });
+  };
+
+  return (
+    <Card className="p-5">
+      <h2 className="text-base font-semibold tracking-tight">Cambiar contraseña</h2>
+      <p className="mt-1 text-sm text-muted-foreground">
+        Actualiza la contraseña con la que ingresas a tu cuenta ({me.email}).
+      </p>
+      <form onSubmit={submit} className="mt-4 max-w-sm space-y-4">
+        <Field label="Nueva contraseña">
+          <Input type="password" value={pw} onChange={(e) => setPw(e.target.value)} placeholder="••••••••" autoComplete="new-password" />
+        </Field>
+        <Field label="Confirmar contraseña">
+          <Input type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} placeholder="••••••••" autoComplete="new-password" />
+        </Field>
+        {msg && (
+          <p className={cn("rounded-lg border px-3 py-2 text-xs font-medium", msg.ok ? "border-success/20 bg-success/10 text-success" : "border-danger/20 bg-danger/10 text-danger")}>
+            {msg.text}
+          </p>
+        )}
+        <Button type="submit" disabled={loading}>
+          {loading ? "Guardando…" : "Actualizar contraseña"}
+        </Button>
+      </form>
     </Card>
   );
 }

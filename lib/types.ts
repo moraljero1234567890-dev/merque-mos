@@ -249,6 +249,19 @@ export const BUDGET_CATEGORIES = [
   "Otros",
 ] as const;
 
+export interface SocialSnapshot {
+  id: string;
+  platform: string; // "instagram"
+  handle: string; // "merquellantas_sas"
+  capturedAt: string; // ISO datetime
+  followers: number;
+  posts: number;
+  avgLikes: number; // likes por publicación
+  avgComments: number; // comentarios por publicación
+  engagementRate: number; // %
+  source: "manual" | "instagram";
+}
+
 export interface MosData {
   profiles: Profile[];
   projects: Project[];
@@ -265,4 +278,5 @@ export interface MosData {
   notifications: Notification[];
   budgets: BudgetLine[];
   financeCategories: string[];
+  socialSnapshots: SocialSnapshot[];
 }

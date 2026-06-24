@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { formatDistanceToNow, format, isThisWeek, isToday } from "date-fns";
 import { es } from "date-fns/locale";
@@ -14,6 +14,7 @@ import {
   Repeat,
   Shield,
   Timer,
+  UserCog,
   Users,
 } from "lucide-react";
 import { useMos } from "@/lib/store";
@@ -32,18 +33,30 @@ import {
   HEALTH_META,
 } from "@/lib/selectors";
 import { PageHeader } from "@/components/page-header";
-import { Avatar, Badge, Card, EmptyState, Progress, Ring } from "@/components/ui";
+import {
+  Avatar,
+  Badge,
+  Button,
+  Card,
+  EmptyState,
+  Field,
+  Input,
+  Modal,
+  Progress,
+  Ring,
+} from "@/components/ui";
 import { BarsByCategory, DonutChart } from "@/components/charts";
 import { cn } from "@/lib/utils";
 
-type Tab = "overview" | "follow" | "team" | "workload" | "projects" | "activity";
+type Tab = "overview" | "follow" | "team" | "workload" | "projects" | "users" | "activity";
 
-const TABS: { key: Tab; label: string; icon: typeof LayoutGrid }[] = [
+const TABS: { key: Tab; label: string; icon: typeof LayoutGrid; live?: boolean }[] = [
   { key: "overview", label: "Resumen", icon: LayoutGrid },
   { key: "follow", label: "Seguimiento", icon: ClipboardCheck },
   { key: "team", label: "Equipo", icon: Users },
   { key: "workload", label: "Carga", icon: GaugeIcon },
   { key: "projects", label: "Proyectos", icon: FolderKanban },
+  { key: "users", label: "Usuarios", icon: UserCog, live: true },
   { key: "activity", label: "Actividad", icon: Activity },
 ];
 
@@ -64,9 +77,10 @@ export default function AdminPage() {
 
 function AdminInner() {
   const params = useSearchParams();
-  const { isAdmin } = useMos();
+  const { isAdmin, live } = useMos();
   const [tab, setTab] = useState<Tab>("overview");
   const focusUser = params.get("user");
+  const tabs = TABS.filter((t) => !t.live || live);
 
   if (!isAdmin) {
     return (
@@ -92,7 +106,7 @@ function AdminInner() {
       />
 
       <div className="mb-5 inline-flex flex-wrap rounded-lg border border-border bg-card p-0.5">
-        {TABS.map((t) => (
+        {tabs.map((t) => (
           <button
             key={t.key}
             onClick={() => setTab(t.key)}
@@ -114,6 +128,7 @@ function AdminInner() {
       {tab === "team" && <Team focusUser={focusUser} />}
       {tab === "workload" && <Workload />}
       {tab === "projects" && <ProjectHealth />}
+      {tab === "users" && <UserManagement />}
       {tab === "activity" && <ActivityFeed />}
     </div>
   );
@@ -291,6 +306,119 @@ function Overview() {
         </div>
       </Card>
     </div>
+  );
+}
+
+/* ------------------------------------------------------------ User management */
+
+function UserManagement() {
+  const { data } = useMos();
+  const [edit, setEdit] = useState<string | null>(null);
+
+  return (
+    <div className="space-y-4">
+      <p className="text-sm text-muted-foreground">
+        Gestiona las cuentas del equipo: cambia el correo o restablece la contraseña de cualquier miembro.
+      </p>
+      <Card className="overflow-hidden">
+        <div className="divide-y divide-border">
+          {data.profiles.map((p) => (
+            <div key={p.id} className="flex items-center gap-3 px-4 py-3">
+              <Avatar id={p.id} name={p.name} size={34} />
+              <div className="min-w-0 flex-1">
+                <div className="truncate text-sm font-medium">{p.name}</div>
+                <div className="truncate text-xs text-muted-foreground">{p.email}</div>
+              </div>
+              <Badge tone={p.role === "admin" ? "primary" : "muted"}>{p.role}</Badge>
+              <Button variant="outline" size="sm" onClick={() => setEdit(p.id)}>
+                Editar
+              </Button>
+            </div>
+          ))}
+        </div>
+      </Card>
+      <UserEditModal userId={edit} onClose={() => setEdit(null)} />
+    </div>
+  );
+}
+
+function UserEditModal({ userId, onClose }: { userId: string | null; onClose: () => void }) {
+  const { data } = useMos();
+  const profile = data.profiles.find((p) => p.id === userId);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+
+  useEffect(() => {
+    if (profile) {
+      setEmail(profile.email);
+      setPassword("");
+      setMsg(null);
+    }
+  }, [profile]);
+
+  if (!profile) return null;
+
+  const save = async () => {
+    setLoading(true);
+    setMsg(null);
+    const body: { userId: string; email?: string; password?: string } = { userId: profile.id };
+    if (email.trim() && email.trim().toLowerCase() !== profile.email) body.email = email.trim();
+    if (password) body.password = password;
+    if (!body.email && !body.password) {
+      setLoading(false);
+      return setMsg({ ok: false, text: "No hay cambios que guardar." });
+    }
+    try {
+      const res = await fetch("/api/admin/users", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const json = await res.json();
+      setLoading(false);
+      if (!res.ok) return setMsg({ ok: false, text: json.error ?? "Error" });
+      setMsg({ ok: true, text: "Cuenta actualizada. Los cambios aplican al iniciar sesión de nuevo." });
+      setPassword("");
+    } catch {
+      setLoading(false);
+      setMsg({ ok: false, text: "Error de red." });
+    }
+  };
+
+  return (
+    <Modal
+      open={!!userId}
+      onClose={onClose}
+      title={`Editar — ${profile.name}`}
+      footer={
+        <>
+          <Button variant="outline" onClick={onClose}>Cerrar</Button>
+          <Button onClick={save} disabled={loading}>{loading ? "Guardando…" : "Guardar"}</Button>
+        </>
+      }
+    >
+      <div className="space-y-4">
+        <Field label="Correo">
+          <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+        </Field>
+        <Field label="Nueva contraseña (opcional)">
+          <Input
+            type="text"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="Déjalo vacío para no cambiarla"
+            autoComplete="off"
+          />
+        </Field>
+        {msg && (
+          <p className={cn("rounded-lg border px-3 py-2 text-xs font-medium", msg.ok ? "border-success/20 bg-success/10 text-success" : "border-danger/20 bg-danger/10 text-danger")}>
+            {msg.text}
+          </p>
+        )}
+      </div>
+    </Modal>
   );
 }
 

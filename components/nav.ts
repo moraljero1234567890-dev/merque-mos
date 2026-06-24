@@ -6,6 +6,7 @@ import {
   FolderKanban,
   LayoutDashboard,
   Repeat,
+  Globe,
   Settings,
   Shield,
   Target,
@@ -32,6 +33,7 @@ export const PRIMARY_NAV: NavItem[] = [
   { label: "Reuniones", href: "/meetings", icon: Users, shortcut: "M" },
   { label: "Documentos", href: "/documents", icon: FileText },
   { label: "Finanzas", href: "/finance", icon: Wallet, adminOnly: true },
+  { label: "Online", href: "/online", icon: Globe, adminOnly: true },
   { label: "Reportes", href: "/reports", icon: BarChart3 },
 ];
 

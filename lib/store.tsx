@@ -21,6 +21,7 @@ import {
   removeCategory,
   saveRow,
 } from "./supabase/data";
+import { setPassword as setDemoPassword } from "./demo-auth";
 import type {
   Announcement,
   BudgetLine,
@@ -32,6 +33,7 @@ import type {
   MosData,
   Project,
   RecurringTask,
+  SocialSnapshot,
   Task,
   TaskComment,
   TaskStatus,
@@ -52,6 +54,7 @@ function hydrate(): MosData {
         // Forward-compatible defaults for fields added after this blob was saved.
         parsed.budgets = parsed.budgets ?? [];
         parsed.financeCategories = parsed.financeCategories ?? [];
+        parsed.socialSnapshots = parsed.socialSnapshots ?? [];
         // Top up recurring occurrences since last visit.
         const fresh = generateOccurrences(parsed.recurring, parsed.tasks);
         parsed.tasks = [...parsed.tasks, ...fresh];
@@ -114,6 +117,13 @@ interface MosContextValue {
   deleteBudget: (id: string) => void;
   addFinanceCategory: (name: string) => void;
   removeFinanceCategory: (name: string) => void;
+
+  // social
+  addSocialSnapshot: (input: Partial<SocialSnapshot>) => void;
+  deleteSocialSnapshot: (id: string) => void;
+
+  // account
+  changeMyPassword: (newPassword: string) => Promise<{ error?: string }>;
 
   resetDemo: () => void;
 }
@@ -544,6 +554,39 @@ export function MosProvider({ children }: { children: React.ReactNode }) {
       if (sb) removeCategory(sb, name);
     };
 
+    const addSocialSnapshot: MosContextValue["addSocialSnapshot"] = (input) => {
+      const snap: SocialSnapshot = {
+        id: uid("ss"),
+        platform: input.platform ?? "instagram",
+        handle: input.handle ?? "merquellantas_sas",
+        capturedAt: input.capturedAt ?? now(),
+        followers: input.followers ?? 0,
+        posts: input.posts ?? 0,
+        avgLikes: input.avgLikes ?? 0,
+        avgComments: input.avgComments ?? 0,
+        engagementRate: input.engagementRate ?? 0,
+        source: input.source ?? "manual",
+      };
+      setData((d) => (d ? { ...d, socialSnapshots: [snap, ...d.socialSnapshots] } : d));
+      save("socialSnapshots", snap);
+    };
+
+    const deleteSocialSnapshot: MosContextValue["deleteSocialSnapshot"] = (id) => {
+      setData((d) => (d ? { ...d, socialSnapshots: d.socialSnapshots.filter((s) => s.id !== id) } : d));
+      del("socialSnapshots", id);
+    };
+
+    const changeMyPassword: MosContextValue["changeMyPassword"] = async (newPassword) => {
+      if (newPassword.length < 6) return { error: "La contraseña debe tener al menos 6 caracteres." };
+      if (sb) {
+        const { error } = await sb.auth.updateUser({ password: newPassword });
+        return error ? { error: error.message } : {};
+      }
+      // Demo mode — store against the current user's email.
+      setDemoPassword(me.email, newPassword);
+      return {};
+    };
+
     const resetDemo = () => {
       try {
         window.localStorage.removeItem(STORAGE_KEY);
@@ -585,6 +628,9 @@ export function MosProvider({ children }: { children: React.ReactNode }) {
       deleteBudget,
       addFinanceCategory,
       removeFinanceCategory,
+      addSocialSnapshot,
+      deleteSocialSnapshot,
+      changeMyPassword,
       resetDemo,
     };
   }, [data, currentUserId]); // eslint-disable-line react-hooks/exhaustive-deps
