@@ -2,14 +2,16 @@
 
 import { Suspense, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { formatDistanceToNow, format } from "date-fns";
+import { formatDistanceToNow, format, isThisWeek, isToday } from "date-fns";
 import { es } from "date-fns/locale";
 import {
   Activity,
   CheckCircle2,
+  ClipboardCheck,
   FolderKanban,
   Gauge as GaugeIcon,
   LayoutGrid,
+  Repeat,
   Shield,
   Timer,
   Users,
@@ -34,10 +36,11 @@ import { Avatar, Badge, Card, EmptyState, Progress, Ring } from "@/components/ui
 import { BarsByCategory, DonutChart } from "@/components/charts";
 import { cn } from "@/lib/utils";
 
-type Tab = "overview" | "team" | "workload" | "projects" | "activity";
+type Tab = "overview" | "follow" | "team" | "workload" | "projects" | "activity";
 
 const TABS: { key: Tab; label: string; icon: typeof LayoutGrid }[] = [
   { key: "overview", label: "Resumen", icon: LayoutGrid },
+  { key: "follow", label: "Seguimiento", icon: ClipboardCheck },
   { key: "team", label: "Equipo", icon: Users },
   { key: "workload", label: "Carga", icon: GaugeIcon },
   { key: "projects", label: "Proyectos", icon: FolderKanban },
@@ -107,6 +110,7 @@ function AdminInner() {
       </div>
 
       {tab === "overview" && <Overview />}
+      {tab === "follow" && <TeamFollowUp />}
       {tab === "team" && <Team focusUser={focusUser} />}
       {tab === "workload" && <Workload />}
       {tab === "projects" && <ProjectHealth />}
@@ -286,6 +290,130 @@ function Overview() {
           })}
         </div>
       </Card>
+    </div>
+  );
+}
+
+/* ----------------------------------------------------------- Team follow-up */
+
+function TeamFollowUp() {
+  const { data } = useMos();
+
+  const isThisWeekNotToday = (d: Date) =>
+    isThisWeek(d, { weekStartsOn: 1 }) && !isToday(d);
+
+  const members = useMemo(() => {
+    return data.profiles
+      .map((p) => {
+        const open = data.tasks
+          .filter((t) => t.assigneeId === p.id && t.status !== "done" && t.dueDate)
+          .map((t) => ({ t, due: new Date(t.dueDate as string) }));
+        const overdue = open.filter((x) => isOverdue(x.t)).sort((a, b) => +a.due - +b.due);
+        const dueToday = open.filter((x) => isToday(x.due)).sort((a, b) => +a.due - +b.due);
+        const week = open
+          .filter((x) => !isOverdue(x.t) && isThisWeekNotToday(x.due))
+          .sort((a, b) => +a.due - +b.due);
+        return { p, overdue, dueToday, week, attention: overdue.length * 2 + dueToday.length };
+      })
+      .sort((a, b) => b.attention - a.attention);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data.tasks, data.profiles]);
+
+  const totals = members.reduce(
+    (acc, m) => ({
+      overdue: acc.overdue + m.overdue.length,
+      today: acc.today + m.dueToday.length,
+      week: acc.week + m.week.length,
+    }),
+    { overdue: 0, today: 0, week: 0 },
+  );
+
+  const Row = ({ t, due }: { t: (typeof members)[number]["dueToday"][number]["t"]; due: Date }) => {
+    const project = data.projects.find((p) => p.id === t.projectId);
+    return (
+      <div className="flex items-center gap-2.5 px-4 py-2 text-sm">
+        <span
+          className="h-1.5 w-1.5 shrink-0 rounded-full"
+          style={{ background: TASK_STATUS_META[t.status].dot }}
+        />
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-1.5">
+            <span className="truncate">{t.title}</span>
+            {t.recurringId && (
+              <span title="Recurrente">
+                <Repeat className="h-3 w-3 shrink-0 text-muted-foreground" />
+              </span>
+            )}
+          </div>
+          {project && <span className="text-xs text-muted-foreground">{project.name}</span>}
+        </div>
+        <span
+          className={cn(
+            "shrink-0 text-xs font-medium",
+            isOverdue(t) ? "text-danger" : isToday(due) ? "text-warning" : "text-muted-foreground",
+          )}
+        >
+          {format(due, "d MMM", { locale: es })}
+        </span>
+      </div>
+    );
+  };
+
+  return (
+    <div className="space-y-6">
+      <p className="text-sm text-muted-foreground">
+        Lo que el equipo tiene pendiente hoy — recurrente <Repeat className="inline h-3 w-3" /> y específico —
+        para tu seguimiento diario.
+      </p>
+      <div className="grid grid-cols-3 gap-3">
+        <StatCard label="Vencidas (equipo)" value={totals.overdue} icon={ClipboardCheck} tone={totals.overdue ? "danger" : "muted"} />
+        <StatCard label="Para hoy" value={totals.today} icon={Timer} tone={totals.today ? "warning" : "muted"} />
+        <StatCard label="Esta semana" value={totals.week} icon={Activity} tone="info" />
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        {members.map(({ p, overdue, dueToday, week }) => {
+          const total = overdue.length + dueToday.length + week.length;
+          return (
+            <Card key={p.id} className="overflow-hidden">
+              <div className="flex items-center gap-2.5 border-b border-border px-4 py-3">
+                <Avatar id={p.id} name={p.name} size={32} />
+                <div className="min-w-0 flex-1">
+                  <div className="truncate text-sm font-semibold">{p.name}</div>
+                  <div className="truncate text-xs text-muted-foreground">{p.title}</div>
+                </div>
+                {overdue.length > 0 && <Badge tone="danger">{overdue.length} vencidas</Badge>}
+                {dueToday.length > 0 && <Badge tone="warning">{dueToday.length} hoy</Badge>}
+              </div>
+
+              {total === 0 ? (
+                <p className="px-4 py-6 text-center text-sm text-muted-foreground">Sin pendientes con fecha. 🎉</p>
+              ) : (
+                <div className="divide-y divide-border">
+                  {overdue.length > 0 && (
+                    <div>
+                      <div className="bg-danger/5 px-4 py-1 text-[11px] font-semibold uppercase tracking-wide text-danger">Vencidas</div>
+                      {overdue.map((x) => <Row key={x.t.id} t={x.t} due={x.due} />)}
+                    </div>
+                  )}
+                  {dueToday.length > 0 && (
+                    <div>
+                      <div className="bg-warning/5 px-4 py-1 text-[11px] font-semibold uppercase tracking-wide text-warning">Hoy</div>
+                      {dueToday.map((x) => <Row key={x.t.id} t={x.t} due={x.due} />)}
+                    </div>
+                  )}
+                  {week.length > 0 && (
+                    <div>
+                      <div className="px-4 py-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Esta semana</div>
+                      {week.map((x) => <Row key={x.t.id} t={x.t} due={x.due} />)}
+                    </div>
+                  )}
+                </div>
+              )}
+            </Card>
+          );
+        })}
+      </div>
     </div>
   );
 }

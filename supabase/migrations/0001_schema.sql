@@ -227,6 +227,7 @@ create index on notifications (user_id, read);
 -- --------------------------------------------------------------- budgets ---
 create table budgets (
   id          uuid primary key default gen_random_uuid(),
+  kind        text not null default 'expense',  -- 'budget' (planned) | 'expense' (actual)
   concept     text not null,
   department  department not null default 'Brand',
   category    text not null default 'Otros',

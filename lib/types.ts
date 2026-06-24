@@ -222,14 +222,17 @@ export interface Notification {
   createdAt: string;
 }
 
+export type BudgetKind = "budget" | "expense";
+
 export interface BudgetLine {
   id: string;
+  kind: BudgetKind; // "budget" = asignación planeada del mes · "expense" = gasto ejecutado
   concept: string; // concepto
   department: Department; // área
   category: string; // agrupador, p.ej. Medios, Producción, Eventos
   month: string; // "YYYY-MM"
-  planned: number; // monto planeado (COP)
-  actual: number; // monto ejecutado (COP)
+  planned: number; // monto planeado (COP) — usado por las líneas de presupuesto
+  actual: number; // monto ejecutado (COP) — usado por los gastos
   ownerId: string | null;
   note?: string;
   createdAt: string;

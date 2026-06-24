@@ -502,6 +502,7 @@ export function MosProvider({ children }: { children: React.ReactNode }) {
     const createBudget: MosContextValue["createBudget"] = (input) => {
       const line: BudgetLine = {
         id: uid("b"),
+        kind: input.kind ?? "expense",
         concept: input.concept,
         department: input.department ?? me.department,
         category: input.category ?? "Otros",

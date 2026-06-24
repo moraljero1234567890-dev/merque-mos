@@ -11,6 +11,7 @@ import {
   ClipboardList,
   ListChecks,
   Plus,
+  X,
 } from "lucide-react";
 import { useMos } from "@/lib/store";
 import type { Meeting } from "@/lib/types";
@@ -348,12 +349,17 @@ function MeetingComposer({
   onClose: () => void;
   meetingId?: string;
 }) {
-  const { data, me, createMeeting, updateMeeting } = useMos();
+  const { data, me, createMeeting, updateMeeting, createTask } = useMos();
   const editing = data.meetings.find((m) => m.id === meetingId);
   const [form, setForm] = useState(blank);
+  // New tasks to create alongside the meeting (also show on the calendar).
+  const [tasks, setTasks] = useState<{ title: string; assigneeId: string; dueDate: string }[]>([]);
+  const [draft, setDraft] = useState({ title: "", assigneeId: "", dueDate: "" });
 
   useEffect(() => {
     if (!open) return;
+    setTasks([]);
+    setDraft({ title: "", assigneeId: me.id, dueDate: "" });
     if (editing) {
       setForm({
         title: editing.title,
@@ -371,6 +377,12 @@ function MeetingComposer({
       });
     }
   }, [open, editing, me.id]);
+
+  const addDraft = () => {
+    if (!draft.title.trim()) return;
+    setTasks((t) => [...t, { ...draft, title: draft.title.trim() }]);
+    setDraft({ title: "", assigneeId: me.id, dueDate: "" });
+  };
 
   const toggleAttendee = (id: string) =>
     setForm((f) => ({
@@ -393,8 +405,20 @@ function MeetingComposer({
         .map((d) => d.trim())
         .filter(Boolean),
     };
+    let mid = editing?.id ?? null;
     if (editing) updateMeeting(editing.id, payload);
-    else createMeeting(payload);
+    else mid = createMeeting(payload).id;
+
+    // Create any tasks captured in the composer (linked to the meeting).
+    const pending = draft.title.trim() ? [...tasks, { ...draft, title: draft.title.trim() }] : tasks;
+    for (const t of pending) {
+      createTask({
+        title: t.title,
+        assigneeId: t.assigneeId || null,
+        dueDate: t.dueDate || null,
+        meetingId: mid,
+      });
+    }
     onClose();
   };
 
@@ -471,6 +495,74 @@ function MeetingComposer({
             placeholder="Cada línea se convierte en una decisión"
           />
         </Field>
+
+        {/* Inline task creation — everything in one place */}
+        <div className="rounded-lg border border-border bg-surface/40 p-3">
+          <div className="flex items-center gap-2 text-sm font-medium">
+            <ListChecks className="h-4 w-4 text-primary" />
+            Tareas de la reunión
+          </div>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            Crea tareas (y eventos del calendario, si pones fecha) sin salir de aquí.
+          </p>
+
+          {tasks.length > 0 && (
+            <div className="mt-3 space-y-1.5">
+              {tasks.map((t, i) => {
+                const a = data.profiles.find((p) => p.id === t.assigneeId);
+                return (
+                  <div key={i} className="flex items-center gap-2 rounded-md border border-border bg-card px-2.5 py-1.5 text-sm">
+                    <span className="min-w-0 flex-1 truncate">{t.title}</span>
+                    {a && <span className="hidden text-xs text-muted-foreground sm:inline">{a.name.split(" ")[0]}</span>}
+                    {t.dueDate && <span className="hidden text-xs text-muted-foreground sm:inline">{format(new Date(t.dueDate), "d MMM", { locale: es })}</span>}
+                    <button
+                      type="button"
+                      onClick={() => setTasks((arr) => arr.filter((_, j) => j !== i))}
+                      className="rounded p-0.5 text-muted-foreground hover:text-danger"
+                      aria-label="Quitar"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-[minmax(0,1fr)_auto_auto_auto]">
+            <Input
+              value={draft.title}
+              onChange={(e) => setDraft((d) => ({ ...d, title: e.target.value }))}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  addDraft();
+                }
+              }}
+              placeholder="Nueva tarea…"
+            />
+            <Select
+              value={draft.assigneeId}
+              onChange={(e) => setDraft((d) => ({ ...d, assigneeId: e.target.value }))}
+              className="sm:w-36"
+            >
+              <option value="">Sin asignar</option>
+              {data.profiles.map((p) => (
+                <option key={p.id} value={p.id}>{p.name.split(" ")[0]}</option>
+              ))}
+            </Select>
+            <Input
+              type="date"
+              value={draft.dueDate}
+              onChange={(e) => setDraft((d) => ({ ...d, dueDate: e.target.value }))}
+              className="sm:w-40"
+            />
+            <Button type="button" variant="secondary" onClick={addDraft}>
+              <Plus className="h-4 w-4" />
+              Agregar
+            </Button>
+          </div>
+        </div>
       </div>
     </Modal>
   );
