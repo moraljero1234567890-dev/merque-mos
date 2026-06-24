@@ -34,6 +34,7 @@ alter table announcements   enable row level security;
 alter table reports         enable row level security;
 alter table activity_logs   enable row level security;
 alter table notifications   enable row level security;
+alter table budgets         enable row level security;
 
 -- ----------------------------------------------------------- profiles ---
 create policy "profiles readable by team"
@@ -126,3 +127,8 @@ create policy "update own notifications"
   on notifications for update using (user_id = auth.uid());
 create policy "system insert notifications"
   on notifications for insert with check (auth.role() = 'authenticated');
+
+-- budgets (team-readable; managed by admins)
+create policy "team read budgets" on budgets for select using (auth.role() = 'authenticated');
+create policy "admin manage budgets"
+  on budgets for all using (is_admin()) with check (is_admin());

@@ -14,6 +14,7 @@ import { generateOccurrences } from "./recurring";
 import { uid } from "./utils";
 import type {
   Announcement,
+  BudgetLine,
   Document,
   Kpi,
   KpiUpdate,
@@ -39,6 +40,8 @@ function hydrate(): MosData {
       const raw = window.localStorage.getItem(STORAGE_KEY);
       if (raw) {
         const parsed = JSON.parse(raw) as MosData;
+        // Forward-compatible defaults for fields added after this blob was saved.
+        parsed.budgets = parsed.budgets ?? [];
         // Top up recurring occurrences since last visit.
         const fresh = generateOccurrences(parsed.recurring, parsed.tasks);
         parsed.tasks = [...parsed.tasks, ...fresh];
@@ -93,6 +96,11 @@ interface MosContextValue {
   // announcements & notifications
   createAnnouncement: (title: string, body: string, pinned?: boolean) => void;
   markAllNotificationsRead: () => void;
+
+  // budget
+  createBudget: (input: Partial<BudgetLine> & { concept: string }) => void;
+  updateBudget: (id: string, patch: Partial<BudgetLine>) => void;
+  deleteBudget: (id: string) => void;
 
   resetDemo: () => void;
 }
@@ -388,6 +396,30 @@ export function MosProvider({ children }: { children: React.ReactNode }) {
       );
     };
 
+    const createBudget: MosContextValue["createBudget"] = (input) => {
+      const line: BudgetLine = {
+        id: uid("b"),
+        concept: input.concept,
+        department: input.department ?? me.department,
+        category: input.category ?? "Otros",
+        month: input.month ?? formatISO(new Date(), { representation: "date" }).slice(0, 7),
+        planned: input.planned ?? 0,
+        actual: input.actual ?? 0,
+        ownerId: input.ownerId ?? currentUserId,
+        note: input.note,
+        createdAt: now(),
+      };
+      setData((d) => (d ? log({ ...d, budgets: [line, ...d.budgets] }, "created", "budget", line.id, `agregó presupuesto “${line.concept}”`) : d));
+    };
+
+    const updateBudget: MosContextValue["updateBudget"] = (id, patch) => {
+      setData((d) => (d ? { ...d, budgets: d.budgets.map((b) => (b.id === id ? { ...b, ...patch } : b)) } : d));
+    };
+
+    const deleteBudget: MosContextValue["deleteBudget"] = (id) => {
+      setData((d) => (d ? { ...d, budgets: d.budgets.filter((b) => b.id !== id) } : d));
+    };
+
     const resetDemo = () => {
       try {
         window.localStorage.removeItem(STORAGE_KEY);
@@ -423,6 +455,9 @@ export function MosProvider({ children }: { children: React.ReactNode }) {
       deleteDocument,
       createAnnouncement,
       markAllNotificationsRead,
+      createBudget,
+      updateBudget,
+      deleteBudget,
       resetDemo,
     };
   }, [data, currentUserId]); // eslint-disable-line react-hooks/exhaustive-deps

@@ -40,6 +40,14 @@ export function formatNumber(n: number) {
   return new Intl.NumberFormat("en").format(n);
 }
 
+export function formatMoney(n: number) {
+  return new Intl.NumberFormat("es-CO", {
+    style: "currency",
+    currency: "COP",
+    maximumFractionDigits: 0,
+  }).format(n || 0);
+}
+
 export function pct(part: number, whole: number) {
   if (!whole) return 0;
   return Math.round((part / whole) * 100);

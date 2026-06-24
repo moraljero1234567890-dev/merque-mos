@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { SUPABASE_KEY, SUPABASE_URL } from "./env";
 
 const PUBLIC_PATHS = ["/login", "/auth"];
 
@@ -9,15 +10,12 @@ const PUBLIC_PATHS = ["/login", "/auth"];
  * this becomes a pass-through.
  */
 export async function updateSession(request: NextRequest) {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
   // Demo mode — no backend configured.
-  if (!url || !key) return NextResponse.next({ request });
+  if (!SUPABASE_URL || !SUPABASE_KEY) return NextResponse.next({ request });
 
   let response = NextResponse.next({ request });
 
-  const supabase = createServerClient(url, key, {
+  const supabase = createServerClient(SUPABASE_URL, SUPABASE_KEY, {
     cookies: {
       getAll() {
         return request.cookies.getAll();

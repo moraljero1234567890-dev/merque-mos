@@ -1,18 +1,13 @@
 import { createBrowserClient } from "@supabase/ssr";
+import { SUPABASE_KEY, SUPABASE_URL, isSupabaseConfigured } from "./env";
 
 /**
  * Browser Supabase client. Returns null when env vars are absent so the app
  * can run fully on the local store (zero-config demo mode).
  */
 export function createClient() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  if (!url || !key) return null;
-  return createBrowserClient(url, key);
+  if (!SUPABASE_URL || !SUPABASE_KEY) return null;
+  return createBrowserClient(SUPABASE_URL, SUPABASE_KEY);
 }
 
-export const isSupabaseConfigured = () =>
-  Boolean(
-    process.env.NEXT_PUBLIC_SUPABASE_URL &&
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-  );
+export { isSupabaseConfigured };

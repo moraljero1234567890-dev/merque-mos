@@ -221,6 +221,30 @@ export interface Notification {
   createdAt: string;
 }
 
+export interface BudgetLine {
+  id: string;
+  concept: string; // concepto
+  department: Department; // área
+  category: string; // agrupador, p.ej. Medios, Producción, Eventos
+  month: string; // "YYYY-MM"
+  planned: number; // monto planeado (COP)
+  actual: number; // monto ejecutado (COP)
+  ownerId: string | null;
+  note?: string;
+  createdAt: string;
+}
+
+export const BUDGET_CATEGORIES = [
+  "Medios pagados",
+  "Producción y diseño",
+  "Eventos y ferias",
+  "Trade y POP",
+  "Agencias y proveedores",
+  "Tecnología y software",
+  "Investigación",
+  "Otros",
+] as const;
+
 export interface MosData {
   profiles: Profile[];
   projects: Project[];
@@ -235,4 +259,5 @@ export interface MosData {
   announcements: Announcement[];
   activity: ActivityLog[];
   notifications: Notification[];
+  budgets: BudgetLine[];
 }

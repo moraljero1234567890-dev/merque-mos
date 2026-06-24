@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { formatDistanceToNow, format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -10,13 +10,17 @@ import {
   FolderKanban,
   Gauge as GaugeIcon,
   LayoutGrid,
+  Pencil,
+  Plus,
   Shield,
   Timer,
+  Trash2,
   Users,
+  Wallet,
 } from "lucide-react";
 import { useMos } from "@/lib/store";
-import { DEPARTMENTS, TASK_STATUSES } from "@/lib/types";
-import type { KpiCategory } from "@/lib/types";
+import { BUDGET_CATEGORIES, DEPARTMENTS, TASK_STATUSES } from "@/lib/types";
+import type { BudgetLine, Department, KpiCategory } from "@/lib/types";
 import { TASK_STATUS_META, KPI_CATEGORY_META, deptLabel } from "@/lib/labels";
 import {
   capacityUtilization,
@@ -30,17 +34,30 @@ import {
   HEALTH_META,
 } from "@/lib/selectors";
 import { PageHeader } from "@/components/page-header";
-import { Avatar, Badge, Card, EmptyState, Progress, Ring } from "@/components/ui";
+import {
+  Avatar,
+  Badge,
+  Button,
+  Card,
+  EmptyState,
+  Field,
+  Input,
+  Modal,
+  Progress,
+  Ring,
+  Select,
+} from "@/components/ui";
 import { BarsByCategory, DonutChart } from "@/components/charts";
-import { cn } from "@/lib/utils";
+import { cn, formatMoney } from "@/lib/utils";
 
-type Tab = "overview" | "team" | "workload" | "projects" | "activity";
+type Tab = "overview" | "team" | "workload" | "projects" | "budget" | "activity";
 
 const TABS: { key: Tab; label: string; icon: typeof LayoutGrid }[] = [
   { key: "overview", label: "Resumen", icon: LayoutGrid },
   { key: "team", label: "Equipo", icon: Users },
   { key: "workload", label: "Carga", icon: GaugeIcon },
   { key: "projects", label: "Proyectos", icon: FolderKanban },
+  { key: "budget", label: "Presupuesto", icon: Wallet },
   { key: "activity", label: "Actividad", icon: Activity },
 ];
 
@@ -110,6 +127,7 @@ function AdminInner() {
       {tab === "team" && <Team focusUser={focusUser} />}
       {tab === "workload" && <Workload />}
       {tab === "projects" && <ProjectHealth />}
+      {tab === "budget" && <BudgetTab />}
       {tab === "activity" && <ActivityFeed />}
     </div>
   );
@@ -577,5 +595,308 @@ function ActivityFeed() {
         </ol>
       </div>
     </Card>
+  );
+}
+
+/* ----------------------------------------------------------------- Budget */
+
+function BudgetTab() {
+  const { data } = useMos();
+  const [composer, setComposer] = useState<{ open: boolean; id?: string }>({ open: false });
+  const [month, setMonth] = useState("all");
+
+  const months = useMemo(
+    () => Array.from(new Set(data.budgets.map((b) => b.month))).sort().reverse(),
+    [data.budgets],
+  );
+  const lines = useMemo(
+    () => (month === "all" ? data.budgets : data.budgets.filter((b) => b.month === month)),
+    [data.budgets, month],
+  );
+
+  const planned = lines.reduce((s, b) => s + b.planned, 0);
+  const actual = lines.reduce((s, b) => s + b.actual, 0);
+  const available = planned - actual;
+  const used = planned ? Math.round((actual / planned) * 100) : 0;
+
+  const byCategory = useMemo(() => {
+    const map = new Map<string, { planned: number; actual: number }>();
+    for (const b of lines) {
+      const cur = map.get(b.category) ?? { planned: 0, actual: 0 };
+      cur.planned += b.planned;
+      cur.actual += b.actual;
+      map.set(b.category, cur);
+    }
+    return [...map.entries()]
+      .map(([category, v]) => ({ category, ...v }))
+      .sort((a, b) => b.planned - a.planned);
+  }, [lines]);
+
+  const byDept = useMemo(
+    () =>
+      DEPARTMENTS.map((d) => ({
+        name: deptLabel(d),
+        value: lines.filter((b) => b.department === d).reduce((s, b) => s + b.actual, 0),
+        color: "var(--primary)",
+      })).filter((x) => x.value > 0),
+    [lines],
+  );
+
+  const monthLabel = (m: string) => {
+    const [y, mo] = m.split("-");
+    return format(new Date(Number(y), Number(mo) - 1, 1), "MMM yyyy", { locale: es });
+  };
+
+  if (data.budgets.length === 0) {
+    return (
+      <>
+        <EmptyState
+          icon={<Wallet className="h-5 w-5" />}
+          title="Aún no hay presupuesto"
+          description="Registra las partidas de marketing (medios, producción, eventos…) con su monto planeado y ejecutado para controlar la inversión del área."
+          action={
+            <Button onClick={() => setComposer({ open: true })}>
+              <Plus className="h-4 w-4" />
+              Agregar línea
+            </Button>
+          }
+        />
+        <BudgetComposer open={composer.open} lineId={composer.id} onClose={() => setComposer({ open: false })} />
+      </>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <Select value={month} onChange={(e) => setMonth(e.target.value)} className="w-auto">
+          <option value="all">Todos los meses</option>
+          {months.map((m) => (
+            <option key={m} value={m}>{monthLabel(m)}</option>
+          ))}
+        </Select>
+        <Button onClick={() => setComposer({ open: true })}>
+          <Plus className="h-4 w-4" />
+          Agregar línea
+        </Button>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <StatCard label="Planeado" value={formatMoney(planned)} icon={Wallet} tone="primary" />
+        <StatCard label="Ejecutado" value={formatMoney(actual)} icon={CheckCircle2} tone="info" />
+        <StatCard
+          label="Disponible"
+          value={formatMoney(available)}
+          icon={Timer}
+          tone={available < 0 ? "danger" : "success"}
+        />
+        <StatCard
+          label="Ejecución"
+          value={`${used}%`}
+          icon={GaugeIcon}
+          tone={used > 100 ? "danger" : used > 85 ? "warning" : "success"}
+        />
+      </div>
+
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        {byDept.length > 0 && (
+          <Card className="lg:col-span-1">
+            <div className="border-b border-border px-5 py-3.5">
+              <h2 className="text-sm font-semibold">Ejecución por área</h2>
+            </div>
+            <div className="p-5">
+              <BarsByCategory data={byDept} height={220} />
+            </div>
+          </Card>
+        )}
+
+        <Card className="lg:col-span-2">
+          <div className="border-b border-border px-5 py-3.5">
+            <h2 className="text-sm font-semibold">Planeado vs. ejecutado por categoría</h2>
+          </div>
+          <div className="space-y-4 p-5">
+            {byCategory.map((c) => {
+              const ratio = c.planned ? Math.min(100, Math.round((c.actual / c.planned) * 100)) : 0;
+              const over = c.actual > c.planned;
+              return (
+                <div key={c.category}>
+                  <div className="mb-1 flex items-center justify-between text-sm">
+                    <span className="font-medium">{c.category}</span>
+                    <span className={cn("tabular-nums text-muted-foreground", over && "text-danger")}>
+                      {formatMoney(c.actual)} / {formatMoney(c.planned)}
+                    </span>
+                  </div>
+                  <Progress value={ratio} className={over ? "[&>div]:bg-danger" : undefined} />
+                </div>
+              );
+            })}
+          </div>
+        </Card>
+      </div>
+
+      <Card className="overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-border text-left text-xs text-muted-foreground">
+                <th className="px-4 py-2.5 font-medium">Concepto</th>
+                <th className="hidden px-4 py-2.5 font-medium sm:table-cell">Categoría</th>
+                <th className="hidden px-4 py-2.5 font-medium md:table-cell">Área</th>
+                <th className="hidden px-4 py-2.5 font-medium lg:table-cell">Mes</th>
+                <th className="px-4 py-2.5 text-right font-medium">Planeado</th>
+                <th className="px-4 py-2.5 text-right font-medium">Ejecutado</th>
+                <th className="px-4 py-2.5 text-right font-medium">Variación</th>
+                <th className="px-4 py-2.5" />
+              </tr>
+            </thead>
+            <tbody>
+              {lines.map((b) => {
+                const variance = b.planned - b.actual;
+                return (
+                  <tr
+                    key={b.id}
+                    onClick={() => setComposer({ open: true, id: b.id })}
+                    className="cursor-pointer border-b border-border last:border-0 hover:bg-muted/40"
+                  >
+                    <td className="px-4 py-3 font-medium">{b.concept}</td>
+                    <td className="hidden px-4 py-3 text-muted-foreground sm:table-cell">{b.category}</td>
+                    <td className="hidden px-4 py-3 md:table-cell"><Badge tone="muted">{deptLabel(b.department)}</Badge></td>
+                    <td className="hidden px-4 py-3 text-muted-foreground lg:table-cell">{monthLabel(b.month)}</td>
+                    <td className="px-4 py-3 text-right tabular-nums">{formatMoney(b.planned)}</td>
+                    <td className="px-4 py-3 text-right tabular-nums">{formatMoney(b.actual)}</td>
+                    <td className={cn("px-4 py-3 text-right tabular-nums font-medium", variance < 0 ? "text-danger" : "text-success")}>
+                      {formatMoney(variance)}
+                    </td>
+                    <td className="px-2 py-3 text-right">
+                      <Pencil className="inline h-3.5 w-3.5 text-muted-foreground" />
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </Card>
+
+      <BudgetComposer open={composer.open} lineId={composer.id} onClose={() => setComposer({ open: false })} />
+    </div>
+  );
+}
+
+const emptyBudget = {
+  concept: "",
+  department: DEPARTMENTS[0] as Department,
+  category: BUDGET_CATEGORIES[0] as string,
+  month: "",
+  planned: "0",
+  actual: "0",
+  note: "",
+};
+
+function BudgetComposer({
+  open,
+  lineId,
+  onClose,
+}: {
+  open: boolean;
+  lineId?: string;
+  onClose: () => void;
+}) {
+  const { data, createBudget, updateBudget, deleteBudget } = useMos();
+  const editing = data.budgets.find((b) => b.id === lineId);
+  const [form, setForm] = useState(emptyBudget);
+
+  useEffect(() => {
+    if (!open) return;
+    if (editing) {
+      setForm({
+        concept: editing.concept,
+        department: editing.department,
+        category: editing.category,
+        month: editing.month,
+        planned: String(editing.planned),
+        actual: String(editing.actual),
+        note: editing.note ?? "",
+      });
+    } else {
+      const now = new Date();
+      setForm({ ...emptyBudget, month: format(now, "yyyy-MM") });
+    }
+  }, [open, editing]);
+
+  const set = (k: keyof typeof emptyBudget, v: string) => setForm((f) => ({ ...f, [k]: v }));
+
+  const save = () => {
+    if (!form.concept.trim()) return;
+    const payload = {
+      concept: form.concept.trim(),
+      department: form.department,
+      category: form.category,
+      month: form.month || format(new Date(), "yyyy-MM"),
+      planned: Number(form.planned) || 0,
+      actual: Number(form.actual) || 0,
+      note: form.note,
+    };
+    if (editing) updateBudget(editing.id, payload);
+    else createBudget(payload);
+    onClose();
+  };
+
+  return (
+    <Modal
+      open={open}
+      onClose={onClose}
+      title={editing ? "Editar línea de presupuesto" : "Nueva línea de presupuesto"}
+      footer={
+        <>
+          {editing && (
+            <Button
+              variant="ghost"
+              className="mr-auto text-danger hover:bg-danger/10"
+              onClick={() => {
+                deleteBudget(editing.id);
+                onClose();
+              }}
+            >
+              <Trash2 className="h-4 w-4" />
+              Eliminar
+            </Button>
+          )}
+          <Button variant="outline" onClick={onClose}>Cancelar</Button>
+          <Button onClick={save}>{editing ? "Guardar" : "Crear"}</Button>
+        </>
+      }
+    >
+      <div className="space-y-4">
+        <Field label="Concepto">
+          <Input value={form.concept} onChange={(e) => set("concept", e.target.value)} placeholder="p. ej. Pauta Meta — Promo llantas" autoFocus />
+        </Field>
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Categoría">
+            <Select value={form.category} onChange={(e) => set("category", e.target.value)}>
+              {BUDGET_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+            </Select>
+          </Field>
+          <Field label="Área">
+            <Select value={form.department} onChange={(e) => set("department", e.target.value)}>
+              {DEPARTMENTS.map((d) => <option key={d} value={d}>{deptLabel(d)}</option>)}
+            </Select>
+          </Field>
+          <Field label="Mes">
+            <Input type="month" value={form.month} onChange={(e) => set("month", e.target.value)} />
+          </Field>
+          <div />
+          <Field label="Planeado (COP)">
+            <Input type="number" min={0} step={1000} value={form.planned} onChange={(e) => set("planned", e.target.value)} />
+          </Field>
+          <Field label="Ejecutado (COP)">
+            <Input type="number" min={0} step={1000} value={form.actual} onChange={(e) => set("actual", e.target.value)} />
+          </Field>
+        </div>
+        <Field label="Nota">
+          <Input value={form.note} onChange={(e) => set("note", e.target.value)} placeholder="Opcional" />
+        </Field>
+      </div>
+    </Modal>
   );
 }

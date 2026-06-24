@@ -1,18 +1,17 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { SUPABASE_KEY, SUPABASE_URL } from "./env";
 
 /**
  * Server Supabase client (RSC / Route Handlers). Returns null when env vars
  * are absent. In Next 16 `cookies()` is async.
  */
 export async function createClient() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  if (!url || !key) return null;
+  if (!SUPABASE_URL || !SUPABASE_KEY) return null;
 
   const cookieStore = await cookies();
 
-  return createServerClient(url, key, {
+  return createServerClient(SUPABASE_URL, SUPABASE_KEY, {
     cookies: {
       getAll() {
         return cookieStore.getAll();

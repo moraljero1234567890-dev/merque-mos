@@ -26,7 +26,7 @@ cp .env.local.example .env.local   # fill the two values below
 | Variable | Where to get it |
 |---|---|
 | `NEXT_PUBLIC_SUPABASE_URL` | Supabase → Project Settings → API → Project URL |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase → Project Settings → API → anon/public key |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Supabase → Project Settings → API Keys → publishable key (`sb_publishable_…`). The legacy `NEXT_PUBLIC_SUPABASE_ANON_KEY` also works. |
 
 Then apply the migrations and promote an admin — see
 [`supabase/README.md`](supabase/README.md). Architecture and folder map live in

@@ -223,6 +223,21 @@ create table notifications (
 );
 create index on notifications (user_id, read);
 
+-- --------------------------------------------------------------- budgets ---
+create table budgets (
+  id          uuid primary key default gen_random_uuid(),
+  concept     text not null,
+  department  department not null default 'Brand',
+  category    text not null default 'Otros',
+  month       text not null,            -- 'YYYY-MM'
+  planned     numeric not null default 0,
+  actual      numeric not null default 0,
+  owner_id    uuid references profiles (id) on delete set null,
+  note        text,
+  created_at  timestamptz not null default now()
+);
+create index on budgets (month);
+
 -- ----------------------------------------------------- new-user handler ---
 -- Auto-provision a profile when a user signs up.
 create or replace function handle_new_user()

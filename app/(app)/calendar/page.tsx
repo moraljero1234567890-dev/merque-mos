@@ -14,7 +14,7 @@ import {
   subMonths,
 } from "date-fns";
 import { es } from "date-fns/locale";
-import { CalendarDays, ChevronLeft, ChevronRight, Clock, Users } from "lucide-react";
+import { CalendarDays, ChevronLeft, ChevronRight, Clock, Plus, Users } from "lucide-react";
 import { useMos } from "@/lib/store";
 import type { Meeting, Priority, Task } from "@/lib/types";
 import { PRIORITY_META } from "@/lib/labels";
@@ -47,8 +47,13 @@ export default function CalendarPage() {
   const { data, me } = useMos();
   const [currentMonth, setCurrentMonth] = useState(() => startOfMonth(new Date()));
   const [scope, setScope] = useState<"me" | "all">("me");
-  const [composer, setComposer] = useState<{ open: boolean; id?: string | null }>({ open: false });
+  const [composer, setComposer] = useState<{ open: boolean; id?: string | null; date?: string }>({ open: false });
   const [dayModal, setDayModal] = useState<Date | null>(null);
+
+  const addEventOn = (date: Date) => {
+    setDayModal(null);
+    setComposer({ open: true, date: format(date, "yyyy-MM-dd") });
+  };
 
   const days = useMemo(() => {
     const gridStart = startOfWeek(startOfMonth(currentMonth), { weekStartsOn: 1 });
@@ -146,6 +151,10 @@ export default function CalendarPage() {
             <Button variant="outline" size="sm" onClick={() => setCurrentMonth(startOfMonth(new Date()))}>
               Hoy
             </Button>
+            <Button size="sm" onClick={() => addEventOn(new Date())}>
+              <Plus className="h-4 w-4" />
+              <span className="hidden sm:inline">Nuevo evento</span>
+            </Button>
           </div>
         }
       />
@@ -186,6 +195,12 @@ export default function CalendarPage() {
           icon={<CalendarDays className="h-5 w-5" />}
           title="Nada programado"
           description="Las tareas con fecha límite y las reuniones aparecerán aquí a medida que planifiques el trabajo."
+          action={
+            <Button onClick={() => addEventOn(new Date())}>
+              <Plus className="h-4 w-4" />
+              Nuevo evento
+            </Button>
+          }
         />
       ) : (
         <Card className="overflow-hidden">
@@ -305,9 +320,17 @@ export default function CalendarPage() {
               }`
             : undefined
         }
+        footer={
+          dayModal ? (
+            <Button onClick={() => addEventOn(dayModal)}>
+              <Plus className="h-4 w-4" />
+              Agregar evento
+            </Button>
+          ) : undefined
+        }
       >
         {dayItems.length === 0 ? (
-          <p className="py-8 text-center text-sm text-muted-foreground">Nada programado este día.</p>
+          <p className="py-8 text-center text-sm text-muted-foreground">Nada programado este día. Usa “Agregar evento” para crear uno.</p>
         ) : (
           <div className="space-y-5">
             {dayItems.some((i) => i.kind === "meeting") && (
@@ -363,6 +386,7 @@ export default function CalendarPage() {
       <TaskComposer
         open={composer.open}
         taskId={composer.id}
+        defaults={composer.date ? { dueDate: composer.date } : undefined}
         onClose={() => setComposer({ open: false })}
       />
     </div>
