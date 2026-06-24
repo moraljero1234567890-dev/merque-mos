@@ -54,12 +54,12 @@ function TasksInner() {
   return (
     <div className="animate-fade-in">
       <PageHeader
-        title="Tasks"
-        description="Everything assigned across the department, with workload and due dates."
+        title="Tareas"
+        description="Todo lo asignado en el departamento, con carga de trabajo y fechas límite."
         actions={
           <Button onClick={() => setComposer({ open: true })}>
             <Plus className="h-4 w-4" />
-            New task
+            Nueva tarea
           </Button>
         }
       />
@@ -67,27 +67,27 @@ function TasksInner() {
       <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Filter tasks…" className="pl-9" />
+          <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Filtrar tareas…" className="pl-9" />
         </div>
         <div className="flex gap-2">
           <Select value={assignee} onChange={(e) => setAssignee(e.target.value)} className="w-auto">
-            <option value="me">My tasks</option>
-            <option value="all">Everyone</option>
+            <option value="me">Mis tareas</option>
+            <option value="all">Todos</option>
             {data.profiles.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
           </Select>
           <Select value={priority} onChange={(e) => setPriority(e.target.value)} className="w-auto">
-            <option value="all">All priority</option>
+            <option value="all">Toda prioridad</option>
             {PRIORITIES.map((p) => <option key={p} value={p}>{PRIORITY_META[p].label}</option>)}
           </Select>
           <Select value={project} onChange={(e) => setProject(e.target.value)} className="hidden w-auto md:block">
-            <option value="all">All projects</option>
+            <option value="all">Todos los proyectos</option>
             {data.projects.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
           </Select>
           <div className="inline-flex shrink-0 rounded-lg border border-border bg-card p-0.5">
-            <button onClick={() => setView("list")} className={cn("rounded-md p-1.5", view === "list" ? "bg-muted text-foreground" : "text-muted-foreground")} aria-label="List view">
+            <button onClick={() => setView("list")} className={cn("rounded-md p-1.5", view === "list" ? "bg-muted text-foreground" : "text-muted-foreground")} aria-label="Vista de lista">
               <List className="h-4 w-4" />
             </button>
-            <button onClick={() => setView("board")} className={cn("rounded-md p-1.5", view === "board" ? "bg-muted text-foreground" : "text-muted-foreground")} aria-label="Board view">
+            <button onClick={() => setView("board")} className={cn("rounded-md p-1.5", view === "board" ? "bg-muted text-foreground" : "text-muted-foreground")} aria-label="Vista de tablero">
               <Columns3 className="h-4 w-4" />
             </button>
           </div>
@@ -113,7 +113,7 @@ function TasksInner() {
             );
           })}
           {!filtered.length && (
-            <Card className="py-16 text-center text-sm text-muted-foreground">No tasks match these filters.</Card>
+            <Card className="py-16 text-center text-sm text-muted-foreground">Ninguna tarea coincide con estos filtros.</Card>
           )}
         </div>
       ) : (
@@ -171,7 +171,7 @@ function BoardView({
                 );
               })}
               {!items.length && (
-                <div className="rounded-lg border border-dashed border-border py-6 text-center text-xs text-muted-foreground">Empty</div>
+                <div className="rounded-lg border border-dashed border-border py-6 text-center text-xs text-muted-foreground">Vacío</div>
               )}
             </div>
           </div>

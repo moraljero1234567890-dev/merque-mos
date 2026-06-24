@@ -48,9 +48,9 @@ export function projectHealth(project: Project, tasks: Task[]): Health {
 }
 
 export const HEALTH_META: Record<Health, { label: string; tone: string; color: string }> = {
-  on_track: { label: "On track", tone: "success", color: "var(--success)" },
-  at_risk: { label: "At risk", tone: "warning", color: "var(--warning)" },
-  off_track: { label: "Off track", tone: "danger", color: "var(--danger)" },
+  on_track: { label: "En curso", tone: "success", color: "var(--success)" },
+  at_risk: { label: "En riesgo", tone: "warning", color: "var(--warning)" },
+  off_track: { label: "Desviado", tone: "danger", color: "var(--danger)" },
 };
 
 export function completionRate(data: MosData) {

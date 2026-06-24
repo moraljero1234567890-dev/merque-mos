@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { format, isThisWeek, isToday } from "date-fns";
+import { es } from "date-fns/locale";
 import {
   AlertTriangle,
   ArrowUpRight,
@@ -108,27 +109,27 @@ export default function DashboardPage() {
 
   const greeting = (() => {
     const h = new Date().getHours();
-    return h < 12 ? "Good morning" : h < 18 ? "Good afternoon" : "Good evening";
+    return h < 12 ? "Buenos días" : h < 18 ? "Buenas tardes" : "Buenas noches";
   })();
 
   return (
     <div className="animate-fade-in">
       <PageHeader
         title={`${greeting}, ${me.name.split(" ")[0]}`}
-        description={format(new Date(), "EEEE, MMMM d")}
+        description={format(new Date(), "EEEE, d 'de' MMMM", { locale: es })}
         actions={
           <Button onClick={() => setComposer({ open: true })}>
             <Plus className="h-4 w-4" />
-            New task
+            Nueva tarea
           </Button>
         }
       />
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <StatCard label="Open tasks" value={open.length} icon={CheckCircle2} tone="info" />
-        <StatCard label="Overdue" value={overdue.length} icon={AlertTriangle} tone={overdue.length ? "danger" : "muted"} />
-        <StatCard label="Due this week" value={dueThisWeek.length} icon={CalendarClock} tone="warning" />
-        <StatCard label="Planned hours" value={`${hours}h`} icon={Clock} tone="success" hint={`${util}% of capacity`} />
+        <StatCard label="Tareas abiertas" value={open.length} icon={CheckCircle2} tone="info" />
+        <StatCard label="Vencidas" value={overdue.length} icon={AlertTriangle} tone={overdue.length ? "danger" : "muted"} />
+        <StatCard label="Vence esta semana" value={dueThisWeek.length} icon={CalendarClock} tone="warning" />
+        <StatCard label="Horas planeadas" value={`${hours}h`} icon={Clock} tone="success" hint={`${util}% de capacidad`} />
       </div>
 
       <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
@@ -137,11 +138,11 @@ export default function DashboardPage() {
           <Card>
             <div className="flex items-center justify-between border-b border-border px-5 py-3.5">
               <div className="flex items-center gap-2">
-                <h2 className="text-sm font-semibold">Today&apos;s priorities</h2>
+                <h2 className="text-sm font-semibold">Prioridades de hoy</h2>
                 <Badge tone={overdue.length ? "danger" : "muted"}>{priorities.length}</Badge>
               </div>
               <Link href="/tasks" className="text-xs font-medium text-primary hover:underline">
-                All tasks
+                Todas las tareas
               </Link>
             </div>
             {priorities.length ? (
@@ -153,15 +154,15 @@ export default function DashboardPage() {
             ) : (
               <div className="flex flex-col items-center gap-2 px-5 py-12 text-center">
                 <CheckCircle2 className="h-8 w-8 text-success" />
-                <p className="text-sm font-medium">Inbox zero — nice.</p>
-                <p className="text-xs text-muted-foreground">No open tasks need your attention right now.</p>
+                <p className="text-sm font-medium">Bandeja en cero — bien hecho.</p>
+                <p className="text-xs text-muted-foreground">No hay tareas abiertas que requieran tu atención ahora mismo.</p>
               </div>
             )}
           </Card>
 
           <Card>
             <div className="border-b border-border px-5 py-3.5">
-              <h2 className="text-sm font-semibold">Upcoming deadlines</h2>
+              <h2 className="text-sm font-semibold">Próximas fechas límite</h2>
             </div>
             {upcoming.length ? (
               <div className="divide-y divide-border">
@@ -181,7 +182,7 @@ export default function DashboardPage() {
                 })}
               </div>
             ) : (
-              <p className="px-5 py-8 text-center text-sm text-muted-foreground">No upcoming deadlines.</p>
+              <p className="px-5 py-8 text-center text-sm text-muted-foreground">No hay próximas fechas límite.</p>
             )}
           </Card>
 
@@ -193,7 +194,7 @@ export default function DashboardPage() {
           <Card>
             <div className="flex items-center gap-2 border-b border-border px-5 py-3.5">
               <Megaphone className="h-4 w-4 text-primary" />
-              <h2 className="text-sm font-semibold">Announcements</h2>
+              <h2 className="text-sm font-semibold">Anuncios</h2>
             </div>
             <div className="divide-y divide-border">
               {announcements.map((a) => {
@@ -201,13 +202,13 @@ export default function DashboardPage() {
                 return (
                   <div key={a.id} className="px-5 py-3.5">
                     <div className="flex items-center gap-2">
-                      {a.pinned && <Badge tone="primary">Pinned</Badge>}
+                      {a.pinned && <Badge tone="primary">Fijado</Badge>}
                       <span className="text-sm font-medium">{a.title}</span>
                     </div>
                     <p className="mt-1 text-sm text-muted-foreground">{a.body}</p>
                     <div className="mt-2 flex items-center gap-1.5 text-xs text-muted-foreground">
                       <Avatar id={a.authorId} name={author?.name ?? "?"} size={18} />
-                      {author?.name} · {format(new Date(a.createdAt), "MMM d")}
+                      {author?.name} · {format(new Date(a.createdAt), "d 'de' MMM", { locale: es })}
                     </div>
                   </div>
                 );
@@ -218,7 +219,7 @@ export default function DashboardPage() {
           <Card>
             <div className="flex items-center gap-2 border-b border-border px-5 py-3.5">
               <Target className="h-4 w-4 text-primary" />
-              <h2 className="text-sm font-semibold">My KPIs</h2>
+              <h2 className="text-sm font-semibold">Mis KPIs</h2>
             </div>
             <div className="space-y-4 p-5">
               {myKpis.length ? (
@@ -242,7 +243,7 @@ export default function DashboardPage() {
                   );
                 })
               ) : (
-                <p className="text-sm text-muted-foreground">No KPIs assigned to you yet.</p>
+                <p className="text-sm text-muted-foreground">Aún no tienes KPIs asignados.</p>
               )}
             </div>
           </Card>
@@ -268,18 +269,18 @@ function AdminDashboard() {
   return (
     <div className="space-y-6">
       <div>
-        <SectionTitle action={<Link href="/admin" className="text-xs font-medium text-primary hover:underline">Open admin</Link>}>
-          Department scorecard
+        <SectionTitle action={<Link href="/admin" className="text-xs font-medium text-primary hover:underline">Abrir administración</Link>}>
+          Scorecard del departamento
         </SectionTitle>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           <Card className="flex flex-col items-center p-4">
-            <Gauge value={cRate} height={120} label="completion" />
+            <Gauge value={cRate} height={120} label="finalización" />
           </Card>
           <Card className="flex flex-col items-center p-4">
-            <Gauge value={otRate} height={120} label="on-time" color="var(--success)" />
+            <Gauge value={otRate} height={120} label="a tiempo" color="var(--success)" />
           </Card>
           <Card className="col-span-2 p-4">
-            <div className="text-sm font-medium">Active projects</div>
+            <div className="text-sm font-medium">Proyectos activos</div>
             <div className="mt-3 space-y-2.5">
               {data.projects
                 .filter((p) => p.status === "active")
@@ -302,9 +303,9 @@ function AdminDashboard() {
 
       <Card>
         <div className="flex items-center justify-between border-b border-border px-5 py-3.5">
-          <h2 className="text-sm font-semibold">Team workload</h2>
+          <h2 className="text-sm font-semibold">Carga del equipo</h2>
           <Link href="/admin" className="text-xs font-medium text-primary hover:underline">
-            Heatmap <ArrowUpRight className="inline h-3 w-3" />
+            Mapa de calor <ArrowUpRight className="inline h-3 w-3" />
           </Link>
         </div>
         <div className="space-y-3 p-5">

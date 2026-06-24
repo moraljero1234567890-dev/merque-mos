@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { format } from "date-fns";
+import { es } from "date-fns/locale";
 import {
   ChevronRight,
   FilePlus,
@@ -50,34 +51,34 @@ function formatBytes(n?: number): string {
 }
 
 const FILE_KINDS: { value: FileKind; label: string }[] = [
-  { value: "doc", label: "Document" },
-  { value: "sheet", label: "Spreadsheet" },
+  { value: "doc", label: "Documento" },
+  { value: "sheet", label: "Hoja de cálculo" },
   { value: "pdf", label: "PDF" },
-  { value: "image", label: "Image" },
-  { value: "slide", label: "Slides" },
-  { value: "link", label: "Link" },
+  { value: "image", label: "Imagen" },
+  { value: "slide", label: "Presentación" },
+  { value: "link", label: "Enlace" },
 ];
 
 type KindVisual = { icon: typeof FileText; color: string; tint: string; label: string };
 
 function kindVisual(doc: Document): KindVisual {
   if (doc.type === "folder") {
-    return { icon: Folder, color: "var(--primary)", tint: "bg-primary/10", label: "Folder" };
+    return { icon: Folder, color: "var(--primary)", tint: "bg-primary/10", label: "Carpeta" };
   }
   switch (doc.fileKind) {
     case "pdf":
       return { icon: FileText, color: "var(--danger)", tint: "bg-danger/10", label: "PDF" };
     case "sheet":
-      return { icon: Table2, color: "var(--success)", tint: "bg-success/10", label: "Spreadsheet" };
+      return { icon: Table2, color: "var(--success)", tint: "bg-success/10", label: "Hoja de cálculo" };
     case "image":
-      return { icon: ImageIcon, color: "var(--info)", tint: "bg-info/10", label: "Image" };
+      return { icon: ImageIcon, color: "var(--info)", tint: "bg-info/10", label: "Imagen" };
     case "slide":
-      return { icon: MonitorPlay, color: "var(--warning)", tint: "bg-warning/10", label: "Slides" };
+      return { icon: MonitorPlay, color: "var(--warning)", tint: "bg-warning/10", label: "Presentación" };
     case "link":
-      return { icon: LinkIcon, color: "var(--muted-foreground)", tint: "bg-muted", label: "Link" };
+      return { icon: LinkIcon, color: "var(--muted-foreground)", tint: "bg-muted", label: "Enlace" };
     case "doc":
     default:
-      return { icon: FileText, color: "var(--info)", tint: "bg-info/10", label: "Document" };
+      return { icon: FileText, color: "var(--info)", tint: "bg-info/10", label: "Documento" };
   }
 }
 
@@ -132,17 +133,17 @@ export default function DocumentsPage() {
   return (
     <div className="animate-fade-in">
       <PageHeader
-        title="Documents"
-        description="Brand manuals, playbooks, templates, SOPs and reports — one shelf for the team."
+        title="Documentos"
+        description="Manuales de marca, playbooks, plantillas, SOPs y reportes — un solo estante para el equipo."
         actions={
           <>
             <Button variant="outline" onClick={() => setComposer({ open: true, type: "folder" })}>
               <FolderPlus className="h-4 w-4" />
-              New folder
+              Nueva carpeta
             </Button>
             <Button onClick={() => setComposer({ open: true, type: "file" })}>
               <Upload className="h-4 w-4" />
-              Add file
+              Agregar archivo
             </Button>
           </>
         }
@@ -161,7 +162,7 @@ export default function DocumentsPage() {
           )}
         >
           <FolderOpen className="h-4 w-4" />
-          Home
+          Inicio
         </button>
         {breadcrumbs.map((node, i) => {
           const last = i === breadcrumbs.length - 1;
@@ -192,7 +193,7 @@ export default function DocumentsPage() {
           <Input
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="Search all documents…"
+            placeholder="Buscar en todos los documentos…"
             className="pl-9"
           />
         </div>
@@ -203,7 +204,7 @@ export default function DocumentsPage() {
               "rounded-md p-1.5",
               view === "grid" ? "bg-muted text-foreground" : "text-muted-foreground",
             )}
-            aria-label="Grid view"
+            aria-label="Vista de cuadrícula"
           >
             <LayoutGrid className="h-4 w-4" />
           </button>
@@ -213,7 +214,7 @@ export default function DocumentsPage() {
               "rounded-md p-1.5",
               view === "list" ? "bg-muted text-foreground" : "text-muted-foreground",
             )}
-            aria-label="List view"
+            aria-label="Vista de lista"
           >
             <List className="h-4 w-4" />
           </button>
@@ -222,29 +223,29 @@ export default function DocumentsPage() {
 
       {searching && (
         <p className="mb-3 text-xs text-muted-foreground">
-          {items.length} result{items.length === 1 ? "" : "s"} for “{q.trim()}”
+          {items.length} resultado{items.length === 1 ? "" : "s"} para “{q.trim()}”
         </p>
       )}
 
       {items.length === 0 ? (
         <EmptyState
           icon={<FolderOpen className="h-5 w-5" />}
-          title={searching ? "No matches" : "This folder is empty"}
+          title={searching ? "Sin coincidencias" : "Esta carpeta está vacía"}
           description={
             searching
-              ? "Try a different name or clear the search."
-              : "Create a folder or add a file to start filling this shelf."
+              ? "Prueba con otro nombre o limpia la búsqueda."
+              : "Crea una carpeta o agrega un archivo para empezar a llenar este estante."
           }
           action={
             !searching && (
               <div className="flex items-center gap-2">
                 <Button variant="outline" onClick={() => setComposer({ open: true, type: "folder" })}>
                   <FolderPlus className="h-4 w-4" />
-                  New folder
+                  Nueva carpeta
                 </Button>
                 <Button onClick={() => setComposer({ open: true, type: "file" })}>
                   <FilePlus className="h-4 w-4" />
-                  Add file
+                  Agregar archivo
                 </Button>
               </div>
             )
@@ -285,7 +286,7 @@ export default function DocumentsPage() {
 function MetaLine({ ownerName, doc }: { ownerName?: string; doc: Document }) {
   const parts = [
     ownerName?.split(" ")[0],
-    format(new Date(doc.updatedAt), "MMM d"),
+    format(new Date(doc.updatedAt), "d MMM", { locale: es }),
     doc.type === "file" ? formatBytes(doc.size) : undefined,
   ].filter(Boolean);
   return <span className="truncate">{parts.join(" · ")}</span>;
@@ -322,7 +323,7 @@ function GridCard({
           deleteDocument(doc.id);
         }}
         className="absolute right-2 top-2 rounded-md p-1 text-muted-foreground opacity-0 transition-all hover:bg-danger/10 hover:text-danger group-hover:opacity-100"
-        aria-label={`Delete ${doc.name}`}
+        aria-label={`Eliminar ${doc.name}`}
       >
         <Trash2 className="h-3.5 w-3.5" />
       </button>
@@ -337,7 +338,7 @@ function GridCard({
       <div className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
         {doc.type === "folder" ? (
           <span>
-            {count} item{count === 1 ? "" : "s"}
+            {count} elemento{count === 1 ? "" : "s"}
           </span>
         ) : (
           <MetaLine ownerName={ownerName} doc={doc} />
@@ -365,11 +366,11 @@ function ListView({
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-border text-left text-xs text-muted-foreground">
-              <th className="px-4 py-2.5 font-medium">Name</th>
-              <th className="px-4 py-2.5 font-medium">Kind</th>
-              <th className="hidden px-4 py-2.5 font-medium md:table-cell">Owner</th>
-              <th className="hidden px-4 py-2.5 font-medium sm:table-cell">Updated</th>
-              <th className="hidden px-4 py-2.5 font-medium sm:table-cell">Size</th>
+              <th className="px-4 py-2.5 font-medium">Nombre</th>
+              <th className="px-4 py-2.5 font-medium">Tipo</th>
+              <th className="hidden px-4 py-2.5 font-medium md:table-cell">Responsable</th>
+              <th className="hidden px-4 py-2.5 font-medium sm:table-cell">Actualizado</th>
+              <th className="hidden px-4 py-2.5 font-medium sm:table-cell">Tamaño</th>
               <th className="w-10 px-4 py-2.5" />
             </tr>
           </thead>
@@ -396,14 +397,14 @@ function ListView({
                   </td>
                   <td className="px-4 py-3 text-muted-foreground">
                     {doc.type === "folder"
-                      ? `Folder · ${count(doc.id)} item${count(doc.id) === 1 ? "" : "s"}`
+                      ? `Carpeta · ${count(doc.id)} elemento${count(doc.id) === 1 ? "" : "s"}`
                       : v.label}
                   </td>
                   <td className="hidden px-4 py-3 text-muted-foreground md:table-cell">
                     {oName?.split(" ")[0] ?? "—"}
                   </td>
                   <td className="hidden px-4 py-3 text-muted-foreground sm:table-cell">
-                    {format(new Date(doc.updatedAt), "MMM d")}
+                    {format(new Date(doc.updatedAt), "d MMM", { locale: es })}
                   </td>
                   <td className="hidden px-4 py-3 text-muted-foreground sm:table-cell">
                     {doc.type === "file" ? formatBytes(doc.size) : "—"}
@@ -415,7 +416,7 @@ function ListView({
                         deleteDocument(doc.id);
                       }}
                       className="rounded-md p-1 text-muted-foreground opacity-0 transition-all hover:bg-danger/10 hover:text-danger group-hover:opacity-100"
-                      aria-label={`Delete ${doc.name}`}
+                      aria-label={`Eliminar ${doc.name}`}
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </button>
@@ -486,27 +487,27 @@ function CreateModal({
     <Modal
       open={open}
       onClose={close}
-      title={isFile ? "Add file" : "New folder"}
+      title={isFile ? "Agregar archivo" : "Nueva carpeta"}
       description={
         isFile
-          ? "Register a document, sheet, deck, image or link for the team."
-          : "Group related files together."
+          ? "Registra un documento, hoja, presentación, imagen o enlace para el equipo."
+          : "Agrupa archivos relacionados."
       }
       footer={
         <>
           <Button variant="outline" onClick={close}>
-            Cancel
+            Cancelar
           </Button>
-          <Button onClick={save}>{isFile ? "Add file" : "Create folder"}</Button>
+          <Button onClick={save}>{isFile ? "Agregar archivo" : "Crear carpeta"}</Button>
         </>
       }
     >
       <div className="space-y-4">
-        <Field label="Name">
+        <Field label="Nombre">
           <Input
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder={isFile ? "e.g. Brand Guidelines.pdf" : "e.g. Playbooks"}
+            placeholder={isFile ? "p. ej. Manual de Marca.pdf" : "p. ej. Playbooks"}
             autoFocus
             onKeyDown={(e) => e.key === "Enter" && save()}
           />
@@ -514,7 +515,7 @@ function CreateModal({
 
         {isFile && (
           <>
-            <Field label="Type">
+            <Field label="Tipo">
               <Select value={fileKind} onChange={(e) => setFileKind(e.target.value as FileKind)}>
                 {FILE_KINDS.map((k) => (
                   <option key={k.value} value={k.value}>
@@ -524,7 +525,7 @@ function CreateModal({
               </Select>
             </Field>
             <div className="grid grid-cols-2 gap-3">
-              <Field label="URL (optional)">
+              <Field label="URL (opcional)">
                 <Input
                   value={url}
                   onChange={(e) => setUrl(e.target.value)}
@@ -532,11 +533,11 @@ function CreateModal({
                   type="url"
                 />
               </Field>
-              <Field label="Size in bytes (optional)">
+              <Field label="Tamaño en bytes (opcional)">
                 <Input
                   value={size}
                   onChange={(e) => setSize(e.target.value)}
-                  placeholder="e.g. 248000"
+                  placeholder="p. ej. 248000"
                   type="number"
                   min={0}
                 />
@@ -546,7 +547,7 @@ function CreateModal({
         )}
 
         <p className="text-xs text-muted-foreground">
-          Will be owned by {defaultOwnerName.split(" ")[0]} and saved to the current folder.
+          Quedará a cargo de {defaultOwnerName.split(" ")[0]} y se guardará en la carpeta actual.
         </p>
       </div>
     </Modal>

@@ -13,6 +13,7 @@ import {
   startOfDay,
   startOfMonth,
 } from "date-fns";
+import { es } from "date-fns/locale";
 import {
   CalendarClock,
   Clock,
@@ -31,7 +32,7 @@ import type {
   Priority,
   RecurringTask,
 } from "@/lib/types";
-import { FREQUENCY_META } from "@/lib/labels";
+import { FREQUENCY_META, PRIORITY_META, deptLabel } from "@/lib/labels";
 import { PageHeader } from "@/components/page-header";
 import {
   Avatar,
@@ -148,7 +149,7 @@ function ToggleSwitch({
         "relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors",
         on ? "bg-primary" : "bg-muted",
       )}
-      aria-label={on ? "Pause recurring" : "Activate recurring"}
+      aria-label={on ? "Pausar recurrente" : "Activar recurrente"}
     >
       <span
         className={cn(
@@ -215,33 +216,33 @@ export default function RecurringPage() {
   return (
     <div className="animate-fade-in">
       <PageHeader
-        title="Recurring Work"
-        description="Automated, repeating marketing rituals — reports, audits and committees."
+        title="Trabajo recurrente"
+        description="Rituales de marketing automatizados y repetitivos: reportes, auditorías y comités."
         actions={
           <Button onClick={() => setComposer({ open: true })}>
             <Plus className="h-4 w-4" />
-            New recurring task
+            Nueva tarea recurrente
           </Button>
         }
       />
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <StatCard label="Active definitions" value={activeCount} icon={Repeat} tone="primary" />
-        <StatCard label="Paused" value={pausedCount} icon={PauseCircle} tone={pausedCount ? "warning" : "muted"} />
-        <StatCard label="Generated this month" value={generatedThisMonth} icon={Sparkles} tone="info" />
-        <StatCard label="Weekly recurring hours" value={`${weeklyHours}h`} icon={Clock} tone="success" hint="Normalized by frequency" />
+        <StatCard label="Definiciones activas" value={activeCount} icon={Repeat} tone="primary" />
+        <StatCard label="En pausa" value={pausedCount} icon={PauseCircle} tone={pausedCount ? "warning" : "muted"} />
+        <StatCard label="Generadas este mes" value={generatedThisMonth} icon={Sparkles} tone="info" />
+        <StatCard label="Horas recurrentes semanales" value={`${weeklyHours}h`} icon={Clock} tone="success" hint="Normalizado por frecuencia" />
       </div>
 
       {definitions.length === 0 ? (
         <div className="mt-6">
           <EmptyState
             icon={<Repeat className="h-5 w-5" />}
-            title="No recurring work yet"
-            description="Set up automated rituals like weekly reports, monthly audits or quarterly committees, and tasks will generate themselves."
+            title="Aún no hay trabajo recurrente"
+            description="Configura rituales automatizados como reportes semanales, auditorías mensuales o comités trimestrales, y las tareas se generarán solas."
             action={
               <Button onClick={() => setComposer({ open: true })}>
                 <Plus className="h-4 w-4" />
-                New recurring task
+                Nueva tarea recurrente
               </Button>
             }
           />
@@ -276,7 +277,7 @@ export default function RecurringPage() {
             <Card>
               <div className="flex items-center gap-2 border-b border-border px-5 py-3.5">
                 <CalendarClock className="h-4 w-4 text-primary" />
-                <h2 className="text-sm font-semibold">Upcoming generated</h2>
+                <h2 className="text-sm font-semibold">Próximas generadas</h2>
                 <Badge tone="muted">{upcoming.length}</Badge>
               </div>
               {upcoming.length ? (
@@ -287,7 +288,7 @@ export default function RecurringPage() {
                 </div>
               ) : (
                 <p className="px-5 py-8 text-center text-sm text-muted-foreground">
-                  No upcoming occurrences scheduled.
+                  No hay próximas ocurrencias programadas.
                 </p>
               )}
             </Card>
@@ -348,7 +349,7 @@ function DefinitionRow({
       </div>
 
       <div className="mt-3 flex flex-wrap items-center gap-1.5">
-        <Badge tone="muted">{r.department}</Badge>
+        <Badge tone="muted">{deptLabel(r.department)}</Badge>
         <PriorityBadge priority={r.priority} />
         <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
           <Clock className="h-3 w-3" />
@@ -356,7 +357,7 @@ function DefinitionRow({
         </span>
         <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
           <CalendarClock className="h-3 w-3" />
-          Next: {r.active ? format(next, "MMM d, yyyy") : "Paused"}
+          Próxima: {r.active ? format(next, "d 'de' MMM, yyyy", { locale: es }) : "En pausa"}
         </span>
       </div>
 
@@ -367,16 +368,16 @@ function DefinitionRow({
             <span className="text-xs text-muted-foreground">{assignee.name.split(" ")[0]}</span>
           </div>
         ) : (
-          <span className="text-xs text-muted-foreground">Unassigned</span>
+          <span className="text-xs text-muted-foreground">Sin asignar</span>
         )}
         <div className="flex items-center gap-1.5">
-          <Button variant="ghost" size="sm" onClick={onRun} title="Generate the next occurrence now">
+          <Button variant="ghost" size="sm" onClick={onRun} title="Generar la próxima ocurrencia ahora">
             <Play className="h-3.5 w-3.5" />
-            Run now
+            Ejecutar ahora
           </Button>
           <Button variant="outline" size="sm" onClick={onEdit}>
             <Pencil className="h-3.5 w-3.5" />
-            Edit
+            Editar
           </Button>
         </div>
       </div>
@@ -451,37 +452,37 @@ function RecurringComposer({
     <Modal
       open={open}
       onClose={onClose}
-      title={editing ? "Edit recurring task" : "New recurring task"}
-      description="Generates tasks automatically on the cadence you choose."
+      title={editing ? "Editar tarea recurrente" : "Nueva tarea recurrente"}
+      description="Genera tareas automáticamente con la cadencia que elijas."
       size="lg"
       footer={
         <>
           <Button variant="outline" onClick={onClose}>
-            Cancel
+            Cancelar
           </Button>
-          <Button onClick={save}>{editing ? "Save" : "Create recurring"}</Button>
+          <Button onClick={save}>{editing ? "Guardar" : "Crear recurrente"}</Button>
         </>
       }
     >
       <div className="space-y-4">
-        <Field label="Title">
+        <Field label="Título">
           <Input
             value={form.title}
             onChange={(e) => set("title", e.target.value)}
-            placeholder="e.g. Weekly performance report"
+            placeholder="ej. Reporte de desempeño semanal"
             autoFocus
           />
         </Field>
-        <Field label="Description">
+        <Field label="Descripción">
           <Textarea
             value={form.description}
             onChange={(e) => set("description", e.target.value)}
-            placeholder="What this ritual covers…"
+            placeholder="Qué cubre este ritual…"
           />
         </Field>
 
         <div className="grid grid-cols-2 gap-3">
-          <Field label="Frequency">
+          <Field label="Frecuencia">
             <Select value={form.frequency} onChange={(e) => set("frequency", e.target.value)}>
               {FREQUENCIES.map((f) => (
                 <option key={f} value={f}>
@@ -490,9 +491,9 @@ function RecurringComposer({
               ))}
             </Select>
           </Field>
-          <Field label="Assignee">
+          <Field label="Responsable">
             <Select value={form.assigneeId} onChange={(e) => set("assigneeId", e.target.value)}>
-              <option value="">Unassigned</option>
+              <option value="">Sin asignar</option>
               {data.profiles.map((p) => (
                 <option key={p.id} value={p.id}>
                   {p.name}
@@ -500,25 +501,25 @@ function RecurringComposer({
               ))}
             </Select>
           </Field>
-          <Field label="Department">
+          <Field label="Departamento">
             <Select value={form.department} onChange={(e) => set("department", e.target.value)}>
               {DEPARTMENTS.map((d) => (
                 <option key={d} value={d}>
-                  {d}
+                  {deptLabel(d)}
                 </option>
               ))}
             </Select>
           </Field>
-          <Field label="Priority">
+          <Field label="Prioridad">
             <Select value={form.priority} onChange={(e) => set("priority", e.target.value)}>
               {PRIORITIES.map((p) => (
                 <option key={p} value={p}>
-                  {p[0].toUpperCase() + p.slice(1)}
+                  {PRIORITY_META[p].label}
                 </option>
               ))}
             </Select>
           </Field>
-          <Field label="Est. hours">
+          <Field label="Horas estimadas">
             <Input
               type="number"
               min={0}
@@ -527,7 +528,7 @@ function RecurringComposer({
               onChange={(e) => set("estimatedHours", e.target.value)}
             />
           </Field>
-          <Field label="Anchor date">
+          <Field label="Fecha de anclaje">
             <Input
               type="date"
               value={form.anchorDate}

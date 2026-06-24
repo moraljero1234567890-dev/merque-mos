@@ -22,20 +22,20 @@ export interface NavItem {
 }
 
 export const PRIMARY_NAV: NavItem[] = [
-  { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard, shortcut: "D" },
-  { label: "Projects", href: "/projects", icon: FolderKanban, shortcut: "P" },
-  { label: "Tasks", href: "/tasks", icon: CheckSquare, shortcut: "T" },
-  { label: "Calendar", href: "/calendar", icon: CalendarDays, shortcut: "C" },
-  { label: "Recurring Work", href: "/recurring", icon: Repeat, shortcut: "R" },
+  { label: "Panel", href: "/dashboard", icon: LayoutDashboard, shortcut: "D" },
+  { label: "Proyectos", href: "/projects", icon: FolderKanban, shortcut: "P" },
+  { label: "Tareas", href: "/tasks", icon: CheckSquare, shortcut: "T" },
+  { label: "Calendario", href: "/calendar", icon: CalendarDays, shortcut: "C" },
+  { label: "Trabajo recurrente", href: "/recurring", icon: Repeat, shortcut: "R" },
   { label: "KPIs", href: "/kpis", icon: Target, shortcut: "K" },
-  { label: "Meetings", href: "/meetings", icon: Users, shortcut: "M" },
-  { label: "Documents", href: "/documents", icon: FileText },
-  { label: "Reports", href: "/reports", icon: BarChart3 },
+  { label: "Reuniones", href: "/meetings", icon: Users, shortcut: "M" },
+  { label: "Documentos", href: "/documents", icon: FileText },
+  { label: "Reportes", href: "/reports", icon: BarChart3 },
 ];
 
 export const SECONDARY_NAV: NavItem[] = [
-  { label: "Admin", href: "/admin", icon: Shield, adminOnly: true },
-  { label: "Settings", href: "/settings", icon: Settings },
+  { label: "Administración", href: "/admin", icon: Shield, adminOnly: true },
+  { label: "Configuración", href: "/settings", icon: Settings },
 ];
 
 export const ALL_NAV = [...PRIMARY_NAV, ...SECONDARY_NAV];

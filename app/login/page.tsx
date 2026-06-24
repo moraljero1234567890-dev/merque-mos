@@ -1,24 +1,26 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { ArrowRight, Boxes, CheckCircle2 } from "lucide-react";
 import { Button, Input, Label } from "@/components/ui";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client";
+import { hasPassword, setPassword, verifyPassword } from "@/lib/demo-auth";
 
 const FEATURES = [
-  "Every priority, project and recurring task in one place",
-  "Capacity & workload tracking across the team",
-  "KPIs, meeting action items and exportable reports",
+  "Cada prioridad, proyecto y tarea recurrente en un solo lugar",
+  "Seguimiento de carga de trabajo y capacidad del equipo",
+  "KPIs, compromisos de reuniones y reportes exportables",
 ];
 
-// Demo-mode access gate. In live mode, Supabase auth replaces all of this.
-const ACCESS_PASSWORD = "Anajaramillo2003";
+// Demo-mode users. In live mode, Supabase Auth manages identities.
 const DEMO_USERS: Record<string, string> = {
   "jeronimo@tirepro.com.co": "u1",
   "alejandro@tirepro.com.co": "u2",
   "andres@tirepro.com.co": "u3",
 };
+
+type Mode = "idle" | "signin" | "create" | "unknown";
 
 export default function LoginPage() {
   return (
@@ -32,10 +34,23 @@ function LoginInner() {
   const router = useRouter();
   const params = useSearchParams();
   const next = params.get("next") || "/dashboard";
+  const live = isSupabaseConfigured();
+
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [password, setPwd] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [mode, setMode] = useState<Mode>("idle");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Recompute the demo flow (create vs sign in) as the email changes.
+  useEffect(() => {
+    if (live) return;
+    const e = email.trim().toLowerCase();
+    if (!e.includes("@")) return setMode("idle");
+    if (!(e in DEMO_USERS)) return setMode("unknown");
+    setMode(hasPassword(e) ? "signin" : "create");
+  }, [email, live]);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,7 +58,7 @@ function LoginInner() {
     setError(null);
 
     // Live mode — authenticate against Supabase.
-    if (isSupabaseConfigured()) {
+    if (live) {
       const supabase = createClient();
       const { error } = await supabase!.auth.signInWithPassword({ email, password });
       if (error) {
@@ -56,24 +71,53 @@ function LoginInner() {
       return;
     }
 
-    // Demo mode — shared password gate, identity chosen by email.
-    if (password !== ACCESS_PASSWORD) {
-      setError("Incorrect email or password.");
+    // Demo mode — each user manages their own password.
+    const key = email.trim().toLowerCase();
+    const userId = DEMO_USERS[key];
+    if (!userId) {
+      setError("No encontramos ese correo. Usa tu correo @tirepro.com.co.");
       setLoading(false);
       return;
     }
-    const userId = DEMO_USERS[email.trim().toLowerCase()] ?? "u1";
+
+    if (!hasPassword(key)) {
+      // First time — create a password.
+      if (password.length < 6) {
+        setError("La contraseña debe tener al menos 6 caracteres.");
+        setLoading(false);
+        return;
+      }
+      if (password !== confirm) {
+        setError("Las contraseñas no coinciden.");
+        setLoading(false);
+        return;
+      }
+      setPassword(key, password);
+    } else if (!verifyPassword(key, password)) {
+      setError("Contraseña incorrecta.");
+      setLoading(false);
+      return;
+    }
+
     try {
       window.localStorage.setItem("mos:user:v1", userId);
     } catch {
       /* private mode — store falls back to default user */
     }
-    setTimeout(() => router.push(next), 300);
+    // Full navigation so the data provider re-initializes with this identity.
+    window.location.assign(next);
   };
+
+  const creating = !live && mode === "create";
+  const buttonLabel = loading
+    ? "Entrando…"
+    : creating
+      ? "Crear contraseña"
+      : "Iniciar sesión";
 
   return (
     <div className="grid min-h-dvh lg:grid-cols-2">
-      {/* Brand panel */}
+      {/* Panel de marca */}
       <div className="relative hidden flex-col justify-between overflow-hidden bg-surface p-12 lg:flex">
         <div className="dotgrid absolute inset-0 opacity-60" />
         <div className="relative flex items-center gap-2.5">
@@ -84,10 +128,10 @@ function LoginInner() {
         </div>
         <div className="relative max-w-md">
           <h1 className="text-3xl font-semibold tracking-tight">
-            The operating system for your marketing department.
+            El sistema operativo de tu departamento de marketing.
           </h1>
           <p className="mt-3 text-muted-foreground">
-            One source of truth for 26 stores — execution, not social media noise.
+            Una sola fuente de verdad para 26 tiendas — ejecución, no ruido en redes.
           </p>
           <ul className="mt-8 space-y-3">
             {FEATURES.map((f) => (
@@ -98,10 +142,10 @@ function LoginInner() {
             ))}
           </ul>
         </div>
-        <div className="relative text-xs text-muted-foreground">© {new Date().getFullYear()} Merqueo Tires · Marketing Operating System</div>
+        <div className="relative text-xs text-muted-foreground">© {new Date().getFullYear()} · Sistema Operativo de Marketing</div>
       </div>
 
-      {/* Form */}
+      {/* Formulario */}
       <div className="flex items-center justify-center p-6">
         <div className="w-full max-w-sm">
           <div className="mb-8 flex items-center gap-2.5 lg:hidden">
@@ -110,25 +154,60 @@ function LoginInner() {
             </div>
             <span className="text-sm font-semibold">Merqueo MOS</span>
           </div>
-          <h2 className="text-xl font-semibold tracking-tight">Welcome back</h2>
-          <p className="mt-1 text-sm text-muted-foreground">Sign in to your workspace to continue.</p>
+          <h2 className="text-xl font-semibold tracking-tight">
+            {creating ? "Crea tu contraseña" : "Hola de nuevo"}
+          </h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {creating
+              ? "Es tu primer ingreso: define la contraseña con la que entrarás."
+              : "Inicia sesión en tu espacio de trabajo para continuar."}
+          </p>
 
           <form onSubmit={submit} className="mt-6 space-y-4">
             <div>
-              <Label>Work email</Label>
-              <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@tirepro.com.co" />
+              <Label>Correo de trabajo</Label>
+              <Input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="tu@tirepro.com.co"
+                autoComplete="email"
+              />
             </div>
             <div>
-              <Label>Password</Label>
-              <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" />
+              <Label>Contraseña</Label>
+              <Input
+                type="password"
+                value={password}
+                onChange={(e) => setPwd(e.target.value)}
+                placeholder="••••••••"
+                autoComplete={creating ? "new-password" : "current-password"}
+              />
             </div>
+            {creating && (
+              <div>
+                <Label>Confirmar contraseña</Label>
+                <Input
+                  type="password"
+                  value={confirm}
+                  onChange={(e) => setConfirm(e.target.value)}
+                  placeholder="••••••••"
+                  autoComplete="new-password"
+                />
+              </div>
+            )}
+            {mode === "unknown" && (
+              <p className="text-xs text-muted-foreground">
+                Usa tu correo corporativo <span className="font-medium text-foreground">@tirepro.com.co</span>.
+              </p>
+            )}
             {error && (
               <p className="rounded-lg border border-danger/20 bg-danger/10 px-3 py-2 text-xs font-medium text-danger">
                 {error}
               </p>
             )}
             <Button type="submit" className="w-full" size="lg" disabled={loading}>
-              {loading ? "Signing in…" : "Sign in"}
+              {buttonLabel}
               {!loading && <ArrowRight className="h-4 w-4" />}
             </Button>
           </form>

@@ -27,7 +27,9 @@ import type {
   TaskStatus,
 } from "./types";
 
-const STORAGE_KEY = "mos:data:v1";
+// v2 — real Tirepro team + recurring catalog, no dummy data. Bumping the key
+// retires any stale v1 demo data cached in a returning user's browser.
+const STORAGE_KEY = "mos:data:v2";
 const USER_KEY = "mos:user:v1";
 
 function hydrate(): MosData {
@@ -430,7 +432,7 @@ export function MosProvider({ children }: { children: React.ReactNode }) {
       <div className="flex h-dvh items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-3">
           <div className="h-8 w-8 animate-spin rounded-full border-2 border-border border-t-primary" />
-          <p className="text-sm text-muted-foreground">Loading workspace…</p>
+          <p className="text-sm text-muted-foreground">Cargando espacio de trabajo…</p>
         </div>
       </div>
     );

@@ -56,19 +56,19 @@ export function CommandPalette({
     const nav: Cmd[] = ALL_NAV.filter((n) => !n.adminOnly || isAdmin).map((n) => ({
       id: `nav-${n.href}`,
       label: n.label,
-      group: "Navigate",
+      group: "Navegar",
       icon: n.icon,
       run: go(n.href),
     }));
 
     const actions: Cmd[] = [
-      { id: "new-task", label: "New task", group: "Actions", icon: Plus, run: go("/tasks?new=1") },
-      { id: "new-project", label: "New project", group: "Actions", icon: Plus, run: go("/projects?new=1") },
-      { id: "new-meeting", label: "Log a meeting", group: "Actions", icon: Plus, run: go("/meetings?new=1") },
+      { id: "new-task", label: "Nueva tarea", group: "Acciones", icon: Plus, run: go("/tasks?new=1") },
+      { id: "new-project", label: "Nuevo proyecto", group: "Acciones", icon: Plus, run: go("/projects?new=1") },
+      { id: "new-meeting", label: "Registrar reunión", group: "Acciones", icon: Plus, run: go("/meetings?new=1") },
       {
         id: "theme",
-        label: theme === "dark" ? "Switch to light theme" : "Switch to dark theme",
-        group: "Actions",
+        label: theme === "dark" ? "Cambiar a tema claro" : "Cambiar a tema oscuro",
+        group: "Acciones",
         icon: theme === "dark" ? Sun : Moon,
         run: () => {
           setTheme(theme === "dark" ? "light" : "dark");
@@ -86,8 +86,8 @@ export function CommandPalette({
             .map((p) => ({
               id: `p-${p.id}`,
               label: p.name,
-              hint: "Project",
-              group: "Results",
+              hint: "Proyecto",
+              group: "Resultados",
               icon: ArrowRight,
               run: go(`/projects?id=${p.id}`),
             })),
@@ -97,8 +97,8 @@ export function CommandPalette({
             .map((t) => ({
               id: `t-${t.id}`,
               label: t.title,
-              hint: "Task",
-              group: "Results",
+              hint: "Tarea",
+              group: "Resultados",
               icon: ArrowRight,
               run: go(`/tasks?id=${t.id}`),
             })),
@@ -109,7 +109,7 @@ export function CommandPalette({
               id: `u-${p.id}`,
               label: p.name,
               hint: p.title,
-              group: "People",
+              group: "Personas",
               icon: ArrowRight,
               run: go(`/admin?user=${p.id}`),
             })),
@@ -167,14 +167,14 @@ export function CommandPalette({
             ref={inputRef}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search or type a command…"
+            placeholder="Busca o escribe un comando…"
             className="h-12 w-full bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
           />
           <kbd className="rounded border border-border bg-muted px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground">ESC</kbd>
         </div>
         <div className="max-h-[52vh] overflow-y-auto p-2">
           {commands.length === 0 && (
-            <div className="px-3 py-8 text-center text-sm text-muted-foreground">No results for “{query}”</div>
+            <div className="px-3 py-8 text-center text-sm text-muted-foreground">Sin resultados para “{query}”</div>
           )}
           {groups.map((g) => (
             <div key={g.name} className="mb-1">

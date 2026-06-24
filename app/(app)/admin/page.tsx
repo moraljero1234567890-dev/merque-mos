@@ -3,6 +3,7 @@
 import { Suspense, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { formatDistanceToNow, format } from "date-fns";
+import { es } from "date-fns/locale";
 import {
   Activity,
   CheckCircle2,
@@ -16,7 +17,7 @@ import {
 import { useMos } from "@/lib/store";
 import { DEPARTMENTS, TASK_STATUSES } from "@/lib/types";
 import type { KpiCategory } from "@/lib/types";
-import { TASK_STATUS_META, KPI_CATEGORY_META } from "@/lib/labels";
+import { TASK_STATUS_META, KPI_CATEGORY_META, deptLabel } from "@/lib/labels";
 import {
   capacityUtilization,
   completionRate,
@@ -36,11 +37,11 @@ import { cn } from "@/lib/utils";
 type Tab = "overview" | "team" | "workload" | "projects" | "activity";
 
 const TABS: { key: Tab; label: string; icon: typeof LayoutGrid }[] = [
-  { key: "overview", label: "Overview", icon: LayoutGrid },
-  { key: "team", label: "Team", icon: Users },
-  { key: "workload", label: "Workload", icon: GaugeIcon },
-  { key: "projects", label: "Projects", icon: FolderKanban },
-  { key: "activity", label: "Activity", icon: Activity },
+  { key: "overview", label: "Resumen", icon: LayoutGrid },
+  { key: "team", label: "Equipo", icon: Users },
+  { key: "workload", label: "Carga", icon: GaugeIcon },
+  { key: "projects", label: "Proyectos", icon: FolderKanban },
+  { key: "activity", label: "Actividad", icon: Activity },
 ];
 
 function utilTone(util: number) {
@@ -68,13 +69,13 @@ function AdminInner() {
     return (
       <div className="animate-fade-in">
         <PageHeader
-          title="Admin"
-          description="Team performance, workload, project health and the department scorecard."
+          title="Administración"
+          description="Desempeño del equipo, carga de trabajo, salud de proyectos y el scorecard del departamento."
         />
         <EmptyState
           icon={<Shield className="h-5 w-5" />}
-          title="Admin access only"
-          description="This cockpit is restricted to admins. Switch to an admin user from the avatar menu in the top-right corner to manage the department."
+          title="Solo administradores"
+          description="Este panel está restringido a administradores. Cambia a un usuario administrador desde el menú del avatar en la esquina superior derecha para gestionar el departamento."
         />
       </div>
     );
@@ -83,8 +84,8 @@ function AdminInner() {
   return (
     <div className="animate-fade-in">
       <PageHeader
-        title="Admin"
-        description="Team performance, workload, project health and the department scorecard."
+        title="Administración"
+        description="Desempeño del equipo, carga de trabajo, salud de proyectos y el scorecard del departamento."
       />
 
       <div className="mb-5 inline-flex flex-wrap rounded-lg border border-border bg-card p-0.5">
@@ -173,7 +174,7 @@ function Overview() {
   const deptBars = useMemo(
     () =>
       DEPARTMENTS.map((d) => ({
-        name: d,
+        name: deptLabel(d),
         value: data.projects.filter((p) => p.department === d).length,
         color: "var(--primary)",
       })).filter((d) => d.value > 0),
@@ -215,11 +216,11 @@ function Overview() {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <StatCard label="Team size" value={teamSize} icon={Users} tone="primary" />
-        <StatCard label="Active projects" value={activeProjects} icon={FolderKanban} tone="info" />
-        <StatCard label="Completion rate" value={`${cRate}%`} icon={CheckCircle2} tone="success" />
+        <StatCard label="Tamaño del equipo" value={teamSize} icon={Users} tone="primary" />
+        <StatCard label="Proyectos activos" value={activeProjects} icon={FolderKanban} tone="info" />
+        <StatCard label="Tasa de finalización" value={`${cRate}%`} icon={CheckCircle2} tone="success" />
         <StatCard
-          label="On-time rate"
+          label="Tasa a tiempo"
           value={`${otRate}%`}
           icon={Timer}
           tone={otRate >= 80 ? "success" : otRate >= 60 ? "warning" : "danger"}
@@ -230,7 +231,7 @@ function Overview() {
         <Card className="lg:col-span-2">
           <div className="border-b border-border px-5 py-3.5">
             <h2 className="text-sm font-semibold">
-              {deptBars.length ? "Projects by department" : "Tasks by status"}
+              {deptBars.length ? "Proyectos por departamento" : "Tareas por estado"}
             </h2>
           </div>
           <div className="p-5">
@@ -240,7 +241,7 @@ function Overview() {
 
         <Card>
           <div className="border-b border-border px-5 py-3.5">
-            <h2 className="text-sm font-semibold">Tasks by status</h2>
+            <h2 className="text-sm font-semibold">Tareas por estado</h2>
           </div>
           <div className="p-5">
             <DonutChart data={donut} height={200} />
@@ -259,7 +260,7 @@ function Overview() {
 
       <Card>
         <div className="border-b border-border px-5 py-3.5">
-          <h2 className="text-sm font-semibold">Department KPI scorecard</h2>
+          <h2 className="text-sm font-semibold">Scorecard de KPIs del departamento</h2>
         </div>
         <div className="grid grid-cols-1 gap-4 p-5 sm:grid-cols-3">
           {kpiAttainment.map(({ cat, avg, count }) => {
@@ -277,7 +278,7 @@ function Overview() {
                 <div>
                   <div className="text-sm font-medium">{KPI_CATEGORY_META[cat].label}</div>
                   <div className="mt-0.5 text-xs text-muted-foreground">
-                    avg attainment · {count} KPI{count === 1 ? "" : "s"}
+                    cumplimiento promedio · {count} KPI{count === 1 ? "" : "s"}
                   </div>
                 </div>
               </div>
@@ -318,12 +319,12 @@ function Team({ focusUser }: { focusUser: string | null }) {
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-border text-left text-xs text-muted-foreground">
-              <th className="px-4 py-2.5 font-medium">Member</th>
-              <th className="hidden px-4 py-2.5 font-medium md:table-cell">Department</th>
-              <th className="px-4 py-2.5 font-medium">Open</th>
-              <th className="px-4 py-2.5 font-medium">Done</th>
-              <th className="px-4 py-2.5 font-medium">Utilization</th>
-              <th className="px-4 py-2.5 font-medium">On-time</th>
+              <th className="px-4 py-2.5 font-medium">Miembro</th>
+              <th className="hidden px-4 py-2.5 font-medium md:table-cell">Departamento</th>
+              <th className="px-4 py-2.5 font-medium">Abiertas</th>
+              <th className="px-4 py-2.5 font-medium">Completadas</th>
+              <th className="px-4 py-2.5 font-medium">Utilización</th>
+              <th className="px-4 py-2.5 font-medium">A tiempo</th>
             </tr>
           </thead>
           <tbody>
@@ -348,7 +349,7 @@ function Team({ focusUser }: { focusUser: string | null }) {
                     </div>
                   </td>
                   <td className="hidden px-4 py-3 md:table-cell">
-                    <Badge tone="muted">{p.department}</Badge>
+                    <Badge tone="muted">{deptLabel(p.department)}</Badge>
                   </td>
                   <td className="px-4 py-3 font-medium">{open}</td>
                   <td className="px-4 py-3 text-muted-foreground">{done}</td>
@@ -365,9 +366,9 @@ function Team({ focusUser }: { focusUser: string | null }) {
                   </td>
                   <td className="px-4 py-3">
                     {overdue ? (
-                      <Badge tone="danger">{overdue} overdue</Badge>
+                      <Badge tone="danger">{overdue} vencidas</Badge>
                     ) : (
-                      <Badge tone="success">On track</Badge>
+                      <Badge tone="success">A tiempo</Badge>
                     )}
                   </td>
                 </tr>
@@ -403,16 +404,16 @@ function Workload() {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-3 gap-3">
-        <StatCard label="Overloaded" value={overloaded} icon={GaugeIcon} tone={overloaded ? "danger" : "muted"} />
-        <StatCard label="Healthy capacity" value={free} icon={CheckCircle2} tone="success" />
-        <StatCard label="Team members" value={rows.length} icon={Users} tone="primary" />
+        <StatCard label="Sobrecargados" value={overloaded} icon={GaugeIcon} tone={overloaded ? "danger" : "muted"} />
+        <StatCard label="Capacidad saludable" value={free} icon={CheckCircle2} tone="success" />
+        <StatCard label="Miembros del equipo" value={rows.length} icon={Users} tone="primary" />
       </div>
 
       <Card>
         <div className="border-b border-border px-5 py-3.5">
-          <h2 className="text-sm font-semibold">Workload heatmap</h2>
+          <h2 className="text-sm font-semibold">Mapa de calor de carga</h2>
           <p className="mt-0.5 text-xs text-muted-foreground">
-            Planned hours vs weekly capacity. Bars turn amber over 80% and red over 100%.
+            Horas planeadas vs capacidad semanal. Las barras se vuelven ámbar sobre 80% y rojas sobre 100%.
           </p>
         </div>
         <div className="space-y-4 p-5">
@@ -438,7 +439,7 @@ function Workload() {
                     />
                   </div>
                   <div className="mt-1 text-[11px] text-muted-foreground">
-                    {logged}h logged this cycle
+                    {logged}h registradas este ciclo
                   </div>
                 </div>
               </div>
@@ -468,8 +469,8 @@ function ProjectHealth() {
     return (
       <EmptyState
         icon={<FolderKanban className="h-5 w-5" />}
-        title="No projects yet"
-        description="Create a project to start tracking health across the department."
+        title="Aún no hay proyectos"
+        description="Crea un proyecto para empezar a monitorear la salud en todo el departamento."
       />
     );
   }
@@ -480,11 +481,11 @@ function ProjectHealth() {
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-border text-left text-xs text-muted-foreground">
-              <th className="px-4 py-2.5 font-medium">Project</th>
-              <th className="px-4 py-2.5 font-medium">Health</th>
-              <th className="hidden px-4 py-2.5 font-medium sm:table-cell">Owner</th>
-              <th className="px-4 py-2.5 font-medium">Progress</th>
-              <th className="hidden px-4 py-2.5 font-medium md:table-cell">Due</th>
+              <th className="px-4 py-2.5 font-medium">Proyecto</th>
+              <th className="px-4 py-2.5 font-medium">Salud</th>
+              <th className="hidden px-4 py-2.5 font-medium sm:table-cell">Responsable</th>
+              <th className="px-4 py-2.5 font-medium">Progreso</th>
+              <th className="hidden px-4 py-2.5 font-medium md:table-cell">Vence</th>
             </tr>
           </thead>
           <tbody>
@@ -520,7 +521,7 @@ function ProjectHealth() {
                     </div>
                   </td>
                   <td className="hidden px-4 py-3 text-muted-foreground md:table-cell">
-                    {format(new Date(p.dueDate), "MMM d")}
+                    {format(new Date(p.dueDate), "d 'de' MMM", { locale: es })}
                   </td>
                 </tr>
               );
@@ -541,8 +542,8 @@ function ActivityFeed() {
     return (
       <EmptyState
         icon={<Activity className="h-5 w-5" />}
-        title="No activity yet"
-        description="Actions across tasks, projects and meetings will show up here."
+        title="Aún no hay actividad"
+        description="Las acciones en tareas, proyectos y reuniones aparecerán aquí."
       />
     );
   }
@@ -550,7 +551,7 @@ function ActivityFeed() {
   return (
     <Card>
       <div className="border-b border-border px-5 py-3.5">
-        <h2 className="text-sm font-semibold">Activity feed</h2>
+        <h2 className="text-sm font-semibold">Registro de actividad</h2>
       </div>
       <div className="p-5">
         <ol className="relative space-y-5 before:absolute before:left-[15px] before:top-2 before:bottom-2 before:w-px before:bg-border">
@@ -563,11 +564,11 @@ function ActivityFeed() {
                 </div>
                 <div className="min-w-0 flex-1 pt-0.5">
                   <p className="text-sm">
-                    <span className="font-medium">{actor?.name ?? "Someone"}</span>{" "}
+                    <span className="font-medium">{actor?.name ?? "Alguien"}</span>{" "}
                     <span className="text-muted-foreground">{a.summary}</span>
                   </p>
                   <p className="mt-0.5 text-xs text-muted-foreground">
-                    {formatDistanceToNow(new Date(a.createdAt), { addSuffix: true })}
+                    {formatDistanceToNow(new Date(a.createdAt), { locale: es, addSuffix: true })}
                   </p>
                 </div>
               </li>

@@ -57,7 +57,7 @@ export function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
         </div>
         <div className="leading-tight">
           <div className="text-sm font-semibold tracking-tight">Merqueo MOS</div>
-          <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Marketing OS</div>
+          <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Marketing</div>
         </div>
       </div>
 

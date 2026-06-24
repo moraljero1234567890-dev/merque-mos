@@ -12,7 +12,7 @@ import { cn } from "@/lib/utils";
 function useTitle() {
   const pathname = usePathname();
   const item = ALL_NAV.find((n) => pathname.startsWith(n.href));
-  return item?.label ?? "Dashboard";
+  return item?.label ?? "Panel";
 }
 
 export function Topbar({
@@ -35,7 +35,7 @@ export function Topbar({
       <button
         onClick={onMenu}
         className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground lg:hidden"
-        aria-label="Open menu"
+        aria-label="Abrir menú"
       >
         <Menu className="h-5 w-5" />
       </button>
@@ -47,7 +47,7 @@ export function Topbar({
         className="group ml-auto flex h-9 items-center gap-2 rounded-lg border border-border bg-card px-3 text-sm text-muted-foreground transition-colors hover:border-border-strong sm:w-64"
       >
         <Search className="h-4 w-4" />
-        <span className="hidden flex-1 text-left sm:inline">Search…</span>
+        <span className="hidden flex-1 text-left sm:inline">Buscar…</span>
         <span className="hidden items-center gap-0.5 sm:flex">
           <Kbd>⌘</Kbd>
           <Kbd>K</Kbd>
@@ -64,7 +64,7 @@ export function Topbar({
             setUserOpen(false);
           }}
           className="relative rounded-lg p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-          aria-label="Notifications"
+          aria-label="Notificaciones"
         >
           <Bell className="h-[18px] w-[18px]" />
           {unread > 0 && (
@@ -76,19 +76,19 @@ export function Topbar({
             <div className="fixed inset-0 z-30" onClick={() => setNotifOpen(false)} />
             <div className="animate-scale-in absolute right-0 z-40 mt-2 w-80 overflow-hidden rounded-xl border border-border bg-elevated shadow-xl">
               <div className="flex items-center justify-between border-b border-border px-4 py-3">
-                <span className="text-sm font-semibold">Notifications</span>
+                <span className="text-sm font-semibold">Notificaciones</span>
                 {unread > 0 && (
                   <button
                     onClick={markAllNotificationsRead}
                     className="text-xs font-medium text-primary hover:underline"
                   >
-                    Mark all read
+                    Marcar todo como leído
                   </button>
                 )}
               </div>
               <div className="max-h-80 overflow-y-auto">
                 {notifs.length === 0 && (
-                  <div className="px-4 py-8 text-center text-sm text-muted-foreground">You&apos;re all caught up.</div>
+                  <div className="px-4 py-8 text-center text-sm text-muted-foreground">Estás al día.</div>
                 )}
                 {notifs.map((n) => (
                   <div key={n.id} className="flex gap-3 border-b border-border px-4 py-3 last:border-0">
@@ -123,7 +123,7 @@ export function Topbar({
             <div className="animate-scale-in absolute right-0 z-40 mt-2 w-64 overflow-hidden rounded-xl border border-border bg-elevated shadow-xl">
               <div className="border-b border-border px-3 py-2.5">
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Viewing as</span>
+                  <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Viendo como</span>
                   <Badge tone={me.role === "admin" ? "primary" : "muted"}>{me.role}</Badge>
                 </div>
               </div>

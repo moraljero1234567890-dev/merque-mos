@@ -1,4 +1,5 @@
 import type {
+  Department,
   Frequency,
   KpiCategory,
   Priority,
@@ -10,42 +11,42 @@ export const TASK_STATUS_META: Record<
   TaskStatus,
   { label: string; dot: string; order: number }
 > = {
-  backlog: { label: "Backlog", dot: "var(--muted-foreground)", order: 0 },
-  todo: { label: "To Do", dot: "var(--info)", order: 1 },
-  in_progress: { label: "In Progress", dot: "var(--warning)", order: 2 },
-  waiting: { label: "Waiting", dot: "var(--danger)", order: 3 },
-  done: { label: "Done", dot: "var(--success)", order: 4 },
+  backlog: { label: "En cola", dot: "var(--muted-foreground)", order: 0 },
+  todo: { label: "Por hacer", dot: "var(--info)", order: 1 },
+  in_progress: { label: "En progreso", dot: "var(--warning)", order: 2 },
+  waiting: { label: "En espera", dot: "var(--danger)", order: 3 },
+  done: { label: "Hecho", dot: "var(--success)", order: 4 },
 };
 
 export const PROJECT_STATUS_META: Record<
   ProjectStatus,
   { label: string; tone: string }
 > = {
-  planning: { label: "Planning", tone: "info" },
-  active: { label: "Active", tone: "success" },
-  on_hold: { label: "On hold", tone: "warning" },
-  completed: { label: "Completed", tone: "muted" },
-  cancelled: { label: "Cancelled", tone: "danger" },
+  planning: { label: "Planeación", tone: "info" },
+  active: { label: "Activo", tone: "success" },
+  on_hold: { label: "En pausa", tone: "warning" },
+  completed: { label: "Completado", tone: "muted" },
+  cancelled: { label: "Cancelado", tone: "danger" },
 };
 
 export const PRIORITY_META: Record<
   Priority,
   { label: string; tone: string; rank: number }
 > = {
-  urgent: { label: "Urgent", tone: "danger", rank: 3 },
-  high: { label: "High", tone: "warning", rank: 2 },
-  medium: { label: "Medium", tone: "info", rank: 1 },
-  low: { label: "Low", tone: "muted", rank: 0 },
+  urgent: { label: "Urgente", tone: "danger", rank: 3 },
+  high: { label: "Alta", tone: "warning", rank: 2 },
+  medium: { label: "Media", tone: "info", rank: 1 },
+  low: { label: "Baja", tone: "muted", rank: 0 },
 };
 
 export const FREQUENCY_META: Record<Frequency, { label: string }> = {
-  daily: { label: "Daily" },
-  weekly: { label: "Weekly" },
-  biweekly: { label: "Biweekly" },
-  monthly: { label: "Monthly" },
-  quarterly: { label: "Quarterly" },
-  semiannual: { label: "Semiannual" },
-  yearly: { label: "Yearly" },
+  daily: { label: "Diario" },
+  weekly: { label: "Semanal" },
+  biweekly: { label: "Quincenal" },
+  monthly: { label: "Mensual" },
+  quarterly: { label: "Trimestral" },
+  semiannual: { label: "Semestral" },
+  yearly: { label: "Anual" },
 };
 
 export const KPI_CATEGORY_META: Record<
@@ -53,6 +54,18 @@ export const KPI_CATEGORY_META: Record<
   { label: string; tone: string }
 > = {
   marketing: { label: "Marketing", tone: "info" },
-  cx: { label: "Customer Experience", tone: "success" },
-  operations: { label: "Operations", tone: "warning" },
+  cx: { label: "Experiencia Cliente", tone: "success" },
+  operations: { label: "Operaciones", tone: "warning" },
 };
+
+// Spanish display labels for the (internal, English) department enum values.
+export const DEPARTMENT_META: Record<Department, { label: string }> = {
+  Brand: { label: "Marca" },
+  Content: { label: "Contenido" },
+  Performance: { label: "Performance" },
+  CRM: { label: "CRM" },
+  "Retail Marketing": { label: "Trade Marketing" },
+  Analytics: { label: "Analítica" },
+};
+
+export const deptLabel = (d: Department) => DEPARTMENT_META[d]?.label ?? d;

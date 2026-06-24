@@ -3,6 +3,7 @@
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { format } from "date-fns";
+import { es } from "date-fns/locale";
 import {
   CalendarClock,
   Check,
@@ -58,12 +59,12 @@ function MeetingsInner() {
   return (
     <div className="animate-fade-in">
       <PageHeader
-        title="Meetings"
-        description="Agendas, notes, decisions and action items — captured and turned into work."
+        title="Reuniones"
+        description="Agendas, notas, decisiones y compromisos — capturados y convertidos en trabajo."
         actions={
           <Button onClick={() => setComposer({ open: true })}>
             <Plus className="h-4 w-4" />
-            Log meeting
+            Registrar reunión
           </Button>
         }
       />
@@ -77,12 +78,12 @@ function MeetingsInner() {
       ) : (
         <EmptyState
           icon={<CalendarClock className="h-5 w-5" />}
-          title="No meetings logged yet"
-          description="Capture an agenda, notes and decisions — then convert action items into tracked tasks."
+          title="Aún no hay reuniones registradas"
+          description="Captura una agenda, notas y decisiones — luego convierte los compromisos en tareas con seguimiento."
           action={
             <Button onClick={() => setComposer({ open: true })}>
               <Plus className="h-4 w-4" />
-              Log meeting
+              Registrar reunión
             </Button>
           }
         />
@@ -129,7 +130,7 @@ function MeetingCard({
       </div>
       <div className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
         <CalendarClock className="h-3.5 w-3.5" />
-        {format(new Date(meeting.date), "EEE, MMM d · HH:mm")}
+        {format(new Date(meeting.date), "EEE d MMM · HH:mm", { locale: es })}
       </div>
       {meeting.notes.trim() && (
         <p className="mt-3 line-clamp-2 text-xs text-muted-foreground">{meeting.notes}</p>
@@ -137,11 +138,11 @@ function MeetingCard({
       <div className="mt-3 flex flex-wrap items-center gap-1.5">
         <Badge tone="info">
           <ListChecks className="h-3 w-3" />
-          {meeting.decisions.length} decision{meeting.decisions.length === 1 ? "" : "s"}
+          {meeting.decisions.length} decisi{meeting.decisions.length === 1 ? "ón" : "ones"}
         </Badge>
         <Badge tone="primary">
           <ClipboardList className="h-3 w-3" />
-          {actionCount} action{actionCount === 1 ? "" : "s"}
+          {actionCount} compromiso{actionCount === 1 ? "" : "s"}
         </Badge>
       </div>
     </button>
@@ -200,7 +201,7 @@ function MeetingDetail({
       size="lg"
       footer={
         <Button variant="outline" onClick={() => onEdit(meeting.id)}>
-          Edit meeting
+          Editar reunión
         </Button>
       }
     >
@@ -208,13 +209,13 @@ function MeetingDetail({
         <div>
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
             <CalendarClock className="h-3.5 w-3.5" />
-            {format(new Date(meeting.date), "EEE, MMM d · HH:mm")}
+            {format(new Date(meeting.date), "EEE d MMM · HH:mm", { locale: es })}
           </div>
           <h2 className="mt-1 text-lg font-semibold tracking-tight">{meeting.title}</h2>
         </div>
 
         {attendees.length > 0 && (
-          <Section title="Attendees">
+          <Section title="Asistentes">
             <div className="flex flex-wrap gap-2">
               {attendees.map((p) => (
                 <span
@@ -238,7 +239,7 @@ function MeetingDetail({
         )}
 
         {meeting.notes.trim() && (
-          <Section title="Notes">
+          <Section title="Notas">
             <p className="whitespace-pre-line rounded-lg border border-border bg-surface/50 p-3 text-sm text-muted-foreground">
               {meeting.notes}
             </p>
@@ -246,7 +247,7 @@ function MeetingDetail({
         )}
 
         {meeting.decisions.length > 0 && (
-          <Section title="Decisions">
+          <Section title="Decisiones">
             <ul className="space-y-1.5">
               {meeting.decisions.map((d, i) => (
                 <li key={i} className="flex items-start gap-2 text-sm">
@@ -258,7 +259,7 @@ function MeetingDetail({
           </Section>
         )}
 
-        <Section title="Action items">
+        <Section title="Compromisos">
           <div className="overflow-hidden rounded-lg border border-border">
             {actions.length ? (
               <div className="divide-y divide-border">
@@ -275,17 +276,17 @@ function MeetingDetail({
                               {who.name.split(" ")[0]}
                             </span>
                           )}
-                          {a.dueDate && <span>Due {format(new Date(a.dueDate), "MMM d")}</span>}
+                          {a.dueDate && <span>Vence {format(new Date(a.dueDate), "d MMM", { locale: es })}</span>}
                         </div>
                       </div>
                       {a.taskId ? (
                         <Badge tone="success">
                           <Check className="h-3 w-3" />
-                          Task created
+                          Tarea creada
                         </Badge>
                       ) : (
                         <Button size="sm" variant="outline" onClick={() => convertActionToTask(a.id)}>
-                          Convert to task
+                          Convertir en tarea
                         </Button>
                       )}
                     </div>
@@ -293,7 +294,7 @@ function MeetingDetail({
                 })}
               </div>
             ) : (
-              <p className="px-4 py-6 text-center text-sm text-muted-foreground">No action items yet.</p>
+              <p className="px-4 py-6 text-center text-sm text-muted-foreground">Aún no hay compromisos.</p>
             )}
           </div>
 
@@ -301,11 +302,11 @@ function MeetingDetail({
             <Input
               value={desc}
               onChange={(e) => setDesc(e.target.value)}
-              placeholder="Add an action item…"
+              placeholder="Agregar un compromiso…"
               onKeyDown={(e) => e.key === "Enter" && addAction()}
             />
             <Select value={assignee} onChange={(e) => setAssignee(e.target.value)}>
-              <option value="">Unassigned</option>
+              <option value="">Sin asignar</option>
               {data.profiles.map((p) => (
                 <option key={p.id} value={p.id}>
                   {p.name}
@@ -320,7 +321,7 @@ function MeetingDetail({
             />
             <Button size="sm" onClick={addAction} disabled={!desc.trim()}>
               <Plus className="h-4 w-4" />
-              Add
+              Agregar
             </Button>
           </div>
         </Section>
@@ -401,34 +402,34 @@ function MeetingComposer({
     <Modal
       open={open}
       onClose={onClose}
-      title={editing ? "Edit meeting" : "Log meeting"}
+      title={editing ? "Editar reunión" : "Registrar reunión"}
       size="lg"
       footer={
         <>
           <Button variant="outline" onClick={onClose}>
-            Cancel
+            Cancelar
           </Button>
-          <Button onClick={save}>{editing ? "Save" : "Log meeting"}</Button>
+          <Button onClick={save}>{editing ? "Guardar" : "Registrar reunión"}</Button>
         </>
       }
     >
       <div className="space-y-4">
-        <Field label="Title">
+        <Field label="Título">
           <Input
             value={form.title}
             onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
-            placeholder="e.g. Weekly marketing sync"
+            placeholder="p. ej. Sync semanal de marketing"
             autoFocus
           />
         </Field>
-        <Field label="Date & time">
+        <Field label="Fecha y hora">
           <Input
             type="datetime-local"
             value={form.date}
             onChange={(e) => setForm((f) => ({ ...f, date: e.target.value }))}
           />
         </Field>
-        <Field label="Attendees">
+        <Field label="Asistentes">
           <div className="grid grid-cols-2 gap-1.5 rounded-lg border border-border bg-surface/50 p-2 sm:grid-cols-3">
             {data.profiles.map((p) => {
               const checked = form.attendeeIds.includes(p.id);
@@ -454,20 +455,20 @@ function MeetingComposer({
           <Textarea
             value={form.agenda}
             onChange={(e) => setForm((f) => ({ ...f, agenda: e.target.value }))}
-            placeholder="One topic per line…"
+            placeholder="Un tema por línea…"
           />
         </Field>
-        <Field label="Notes">
+        <Field label="Notas">
           <Textarea
             value={form.notes}
             onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
           />
         </Field>
-        <Field label="Decisions — one per line">
+        <Field label="Decisiones — una por línea">
           <Textarea
             value={form.decisions}
             onChange={(e) => setForm((f) => ({ ...f, decisions: e.target.value }))}
-            placeholder="Each line becomes a decision"
+            placeholder="Cada línea se convierte en una decisión"
           />
         </Field>
       </div>

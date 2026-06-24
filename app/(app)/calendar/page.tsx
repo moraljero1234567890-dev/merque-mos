@@ -13,6 +13,7 @@ import {
   startOfWeek,
   subMonths,
 } from "date-fns";
+import { es } from "date-fns/locale";
 import { CalendarDays, ChevronLeft, ChevronRight, Clock, Users } from "lucide-react";
 import { useMos } from "@/lib/store";
 import type { Meeting, Priority, Task } from "@/lib/types";
@@ -36,7 +37,7 @@ function priorityColor(priority: Priority): string {
   return TONE_COLOR[PRIORITY_META[priority].tone] ?? TONE_COLOR.muted;
 }
 
-const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+const WEEKDAYS = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
 
 type DayItem =
   | { kind: "task"; task: Task; color: string; label: string }
@@ -119,31 +120,31 @@ export default function CalendarPage() {
   return (
     <div className="animate-fade-in">
       <PageHeader
-        title="Calendar"
-        description="Deadlines, recurring work and meetings across the department."
+        title="Calendario"
+        description="Fechas límite, trabajo recurrente y reuniones del departamento."
         actions={
           <div className="flex items-center gap-2">
             <span className="hidden text-sm font-semibold tabular-nums sm:inline">
-              {format(currentMonth, "MMMM yyyy")}
+              {format(currentMonth, "MMMM yyyy", { locale: es })}
             </span>
             <div className="inline-flex shrink-0 items-center rounded-lg border border-border bg-card p-0.5">
               <button
                 onClick={() => setCurrentMonth((m) => subMonths(m, 1))}
                 className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                aria-label="Previous month"
+                aria-label="Mes anterior"
               >
                 <ChevronLeft className="h-4 w-4" />
               </button>
               <button
                 onClick={() => setCurrentMonth((m) => addMonths(m, 1))}
                 className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                aria-label="Next month"
+                aria-label="Mes siguiente"
               >
                 <ChevronRight className="h-4 w-4" />
               </button>
             </div>
             <Button variant="outline" size="sm" onClick={() => setCurrentMonth(startOfMonth(new Date()))}>
-              Today
+              Hoy
             </Button>
           </div>
         }
@@ -151,7 +152,7 @@ export default function CalendarPage() {
 
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <span className="text-sm font-semibold tabular-nums sm:hidden">
-          {format(currentMonth, "MMMM yyyy")}
+          {format(currentMonth, "MMMM yyyy", { locale: es })}
         </span>
         <div className="inline-flex shrink-0 rounded-lg border border-border bg-card p-0.5 text-sm">
           {(["me", "all"] as const).map((s) => (
@@ -163,7 +164,7 @@ export default function CalendarPage() {
                 scope === s ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground",
               )}
             >
-              {s === "me" ? "My items" : "Everyone"}
+              {s === "me" ? "Mis ítems" : "Todos"}
             </button>
           ))}
         </div>
@@ -171,11 +172,11 @@ export default function CalendarPage() {
         <div className="flex items-center gap-4 text-xs text-muted-foreground sm:ml-auto">
           <span className="inline-flex items-center gap-1.5">
             <CalendarDays className="h-3.5 w-3.5" />
-            {monthStats.deadlines} deadline{monthStats.deadlines === 1 ? "" : "s"}
+            {monthStats.deadlines} {monthStats.deadlines === 1 ? "fecha límite" : "fechas límite"}
           </span>
           <span className="inline-flex items-center gap-1.5">
             <Users className="h-3.5 w-3.5" />
-            {monthStats.meetings} meeting{monthStats.meetings === 1 ? "" : "s"}
+            {monthStats.meetings} {monthStats.meetings === 1 ? "reunión" : "reuniones"}
           </span>
         </div>
       </div>
@@ -183,8 +184,8 @@ export default function CalendarPage() {
       {totalItems === 0 ? (
         <EmptyState
           icon={<CalendarDays className="h-5 w-5" />}
-          title="Nothing scheduled"
-          description="Tasks with a due date and meetings will appear here as you plan work."
+          title="Nada programado"
+          description="Las tareas con fecha límite y las reuniones aparecerán aquí a medida que planifiques el trabajo."
         />
       ) : (
         <Card className="overflow-hidden">
@@ -259,7 +260,7 @@ export default function CalendarPage() {
                     )}
                     {overflow > 0 && (
                       <span className="px-1.5 text-[10px] font-medium text-muted-foreground">
-                        +{overflow} more
+                        +{overflow} más
                       </span>
                     )}
                   </div>
@@ -272,21 +273,21 @@ export default function CalendarPage() {
 
       {/* Legend */}
       <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-muted-foreground">
-        <span className="font-medium text-foreground">Legend</span>
+        <span className="font-medium text-foreground">Convenciones</span>
         <span className="inline-flex items-center gap-1.5">
-          <Dot color="var(--primary)" /> Meetings
+          <Dot color="var(--primary)" /> Reuniones
         </span>
         <span className="inline-flex items-center gap-1.5">
-          <Dot color={priorityColor("urgent")} /> Urgent
+          <Dot color={priorityColor("urgent")} /> {PRIORITY_META.urgent.label}
         </span>
         <span className="inline-flex items-center gap-1.5">
-          <Dot color={priorityColor("high")} /> High
+          <Dot color={priorityColor("high")} /> {PRIORITY_META.high.label}
         </span>
         <span className="inline-flex items-center gap-1.5">
-          <Dot color={priorityColor("medium")} /> Medium
+          <Dot color={priorityColor("medium")} /> {PRIORITY_META.medium.label}
         </span>
         <span className="inline-flex items-center gap-1.5">
-          <Dot color={priorityColor("low")} /> Low
+          <Dot color={priorityColor("low")} /> {PRIORITY_META.low.label}
         </span>
       </div>
 
@@ -294,25 +295,25 @@ export default function CalendarPage() {
       <Modal
         open={dayModal !== null}
         onClose={() => setDayModal(null)}
-        title={dayModal ? format(dayModal, "EEEE, MMMM d") : undefined}
+        title={dayModal ? format(dayModal, "EEEE, d 'de' MMMM", { locale: es }) : undefined}
         description={
           dayModal
-            ? `${dayItems.filter((i) => i.kind === "task").length} task${
-                dayItems.filter((i) => i.kind === "task").length === 1 ? "" : "s"
-              } · ${dayItems.filter((i) => i.kind === "meeting").length} meeting${
-                dayItems.filter((i) => i.kind === "meeting").length === 1 ? "" : "s"
+            ? `${dayItems.filter((i) => i.kind === "task").length} ${
+                dayItems.filter((i) => i.kind === "task").length === 1 ? "tarea" : "tareas"
+              } · ${dayItems.filter((i) => i.kind === "meeting").length} ${
+                dayItems.filter((i) => i.kind === "meeting").length === 1 ? "reunión" : "reuniones"
               }`
             : undefined
         }
       >
         {dayItems.length === 0 ? (
-          <p className="py-8 text-center text-sm text-muted-foreground">Nothing scheduled this day.</p>
+          <p className="py-8 text-center text-sm text-muted-foreground">Nada programado este día.</p>
         ) : (
           <div className="space-y-5">
             {dayItems.some((i) => i.kind === "meeting") && (
               <div>
                 <div className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                  Meetings
+                  Reuniones
                 </div>
                 <div className="space-y-2">
                   {dayItems
@@ -328,8 +329,7 @@ export default function CalendarPage() {
                         <div className="min-w-0 flex-1">
                           <div className="truncate text-sm font-medium">{i.meeting.title}</div>
                           <div className="text-xs text-muted-foreground">
-                            {i.meeting.attendeeIds.length} attendee
-                            {i.meeting.attendeeIds.length === 1 ? "" : "s"}
+                            {i.meeting.attendeeIds.length} {i.meeting.attendeeIds.length === 1 ? "asistente" : "asistentes"}
                           </div>
                         </div>
                         <span className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground">
@@ -345,7 +345,7 @@ export default function CalendarPage() {
             {dayItems.some((i) => i.kind === "task") && (
               <div>
                 <div className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                  Tasks
+                  Tareas
                 </div>
                 <Card className="divide-y divide-border overflow-hidden">
                   {dayItems

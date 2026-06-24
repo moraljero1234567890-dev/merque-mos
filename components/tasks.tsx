@@ -6,7 +6,7 @@ import { Clock, MessageSquare, Paperclip, Repeat, Trash2 } from "lucide-react";
 import { useMos } from "@/lib/store";
 import { DEPARTMENTS, PRIORITIES, TASK_STATUSES } from "@/lib/types";
 import type { Task, TaskStatus } from "@/lib/types";
-import { TASK_STATUS_META } from "@/lib/labels";
+import { PRIORITY_META, TASK_STATUS_META } from "@/lib/labels";
 import {
   Avatar,
   Button,
@@ -180,7 +180,7 @@ export function TaskComposer({
     <Modal
       open={open}
       onClose={onClose}
-      title={editing ? "Task" : "New task"}
+      title={editing ? "Tarea" : "Nueva tarea"}
       size="lg"
       footer={
         <>
@@ -194,26 +194,26 @@ export function TaskComposer({
               }}
             >
               <Trash2 className="h-4 w-4" />
-              Delete
+              Eliminar
             </Button>
           )}
           <Button variant="outline" onClick={onClose}>
-            Cancel
+            Cancelar
           </Button>
-          <Button onClick={save}>{editing ? "Save" : "Create task"}</Button>
+          <Button onClick={save}>{editing ? "Guardar" : "Crear tarea"}</Button>
         </>
       }
     >
       <div className="space-y-4">
-        <Field label="Title">
-          <Input value={form.title} onChange={(e) => set("title", e.target.value)} placeholder="What needs to be done?" autoFocus />
+        <Field label="Título">
+          <Input value={form.title} onChange={(e) => set("title", e.target.value)} placeholder="¿Qué hay que hacer?" autoFocus />
         </Field>
-        <Field label="Description">
-          <Textarea value={form.description} onChange={(e) => set("description", e.target.value)} placeholder="Add detail…" />
+        <Field label="Descripción">
+          <Textarea value={form.description} onChange={(e) => set("description", e.target.value)} placeholder="Agrega detalle…" />
         </Field>
 
         <div className="grid grid-cols-2 gap-3">
-          <Field label="Status">
+          <Field label="Estado">
             <Select value={form.status} onChange={(e) => set("status", e.target.value)}>
               {TASK_STATUSES.map((s) => (
                 <option key={s} value={s}>
@@ -222,18 +222,18 @@ export function TaskComposer({
               ))}
             </Select>
           </Field>
-          <Field label="Priority">
+          <Field label="Prioridad">
             <Select value={form.priority} onChange={(e) => set("priority", e.target.value)}>
               {PRIORITIES.map((p) => (
                 <option key={p} value={p}>
-                  {p[0].toUpperCase() + p.slice(1)}
+                  {PRIORITY_META[p].label}
                 </option>
               ))}
             </Select>
           </Field>
-          <Field label="Assignee">
+          <Field label="Responsable">
             <Select value={form.assigneeId} onChange={(e) => set("assigneeId", e.target.value)}>
-              <option value="">Unassigned</option>
+              <option value="">Sin asignar</option>
               {data.profiles.map((p) => (
                 <option key={p.id} value={p.id}>
                   {p.name}
@@ -241,9 +241,9 @@ export function TaskComposer({
               ))}
             </Select>
           </Field>
-          <Field label="Project">
+          <Field label="Proyecto">
             <Select value={form.projectId} onChange={(e) => set("projectId", e.target.value)}>
-              <option value="">No project</option>
+              <option value="">Sin proyecto</option>
               {data.projects.map((p) => (
                 <option key={p.id} value={p.id}>
                   {p.name}
@@ -251,21 +251,21 @@ export function TaskComposer({
               ))}
             </Select>
           </Field>
-          <Field label="Due date">
+          <Field label="Fecha límite">
             <Input type="date" value={form.dueDate} onChange={(e) => set("dueDate", e.target.value)} />
           </Field>
           <div className="grid grid-cols-2 gap-3">
-            <Field label="Est. hours">
+            <Field label="Horas est.">
               <Input type="number" min={0} step={0.5} value={form.estimatedHours} onChange={(e) => set("estimatedHours", e.target.value)} />
             </Field>
-            <Field label="Actual">
+            <Field label="Reales">
               <Input type="number" min={0} step={0.5} value={form.actualHours} onChange={(e) => set("actualHours", e.target.value)} />
             </Field>
           </div>
         </div>
 
-        <Field label="Notes / blockers">
-          <Textarea value={form.notes} onChange={(e) => set("notes", e.target.value)} placeholder="Log a blocker or context…" className="min-h-[60px]" />
+        <Field label="Notas / bloqueos">
+          <Textarea value={form.notes} onChange={(e) => set("notes", e.target.value)} placeholder="Registra un bloqueo o contexto…" className="min-h-[60px]" />
         </Field>
 
         {editing && (
@@ -294,7 +294,7 @@ export function TaskComposer({
             <div>
               <div className="mb-2 flex items-center gap-2 text-sm font-medium">
                 <MessageSquare className="h-4 w-4 text-muted-foreground" />
-                Comments
+                Comentarios
                 <span className="text-muted-foreground">{comments.length}</span>
               </div>
               <div className="space-y-3">
@@ -318,7 +318,7 @@ export function TaskComposer({
                 <Input
                   value={comment}
                   onChange={(e) => setComment(e.target.value)}
-                  placeholder="Write a comment…"
+                  placeholder="Escribe un comentario…"
                   onKeyDown={(e) => {
                     if (e.key === "Enter" && comment.trim()) {
                       addComment(editing.id, comment.trim());
@@ -335,7 +335,7 @@ export function TaskComposer({
                     }
                   }}
                 >
-                  Send
+                  Enviar
                 </Button>
               </div>
             </div>

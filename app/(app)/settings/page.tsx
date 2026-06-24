@@ -17,6 +17,7 @@ import {
   Users,
 } from "lucide-react";
 import { useMos } from "@/lib/store";
+import { deptLabel } from "@/lib/labels";
 import { useTheme } from "@/components/theme";
 import { PageHeader } from "@/components/page-header";
 import {
@@ -40,12 +41,12 @@ type SectionId =
   | "danger";
 
 const SECTIONS: { id: SectionId; label: string; icon: typeof User }[] = [
-  { id: "profile", label: "Profile", icon: User },
-  { id: "appearance", label: "Appearance", icon: Palette },
-  { id: "notifications", label: "Notifications", icon: Bell },
-  { id: "workspace", label: "Workspace", icon: Building2 },
-  { id: "users", label: "Switch user", icon: Users },
-  { id: "danger", label: "Danger zone", icon: ShieldAlert },
+  { id: "profile", label: "Perfil", icon: User },
+  { id: "appearance", label: "Apariencia", icon: Palette },
+  { id: "notifications", label: "Notificaciones", icon: Bell },
+  { id: "workspace", label: "Espacio de trabajo", icon: Building2 },
+  { id: "users", label: "Cambiar de usuario", icon: Users },
+  { id: "danger", label: "Zona de peligro", icon: ShieldAlert },
 ];
 
 /* ------------------------------------------------------------------ Toggle */
@@ -84,11 +85,11 @@ function Toggle({
 /* ------------------------------------------------------- Notification prefs */
 
 const PREF_DEFS: { key: string; label: string; description: string }[] = [
-  { key: "taskAssigned", label: "Task assigned", description: "When a task is assigned to you." },
-  { key: "mentions", label: "Mentions", description: "When someone @mentions you in a comment." },
-  { key: "deadlines", label: "Deadlines approaching", description: "A nudge before a task is due." },
-  { key: "kpiAlerts", label: "KPI alerts", description: "When one of your KPIs drifts off target." },
-  { key: "weeklyDigest", label: "Weekly digest", description: "A Monday summary of your workload." },
+  { key: "taskAssigned", label: "Tarea asignada", description: "Cuando se te asigna una tarea." },
+  { key: "mentions", label: "Menciones", description: "Cuando alguien te @menciona en un comentario." },
+  { key: "deadlines", label: "Fechas límite próximas", description: "Un recordatorio antes de que venza una tarea." },
+  { key: "kpiAlerts", label: "Alertas de KPIs", description: "Cuando uno de tus KPIs se desvía de la meta." },
+  { key: "weeklyDigest", label: "Resumen semanal", description: "Un resumen de tu carga de trabajo cada lunes." },
 ];
 
 const DEFAULT_PREFS: Record<string, boolean> = {
@@ -136,9 +137,9 @@ export default function SettingsPage() {
   const themeTiles = useMemo(
     () =>
       [
-        { value: "light" as const, label: "Light", icon: Sun },
-        { value: "system" as const, label: "System", icon: Monitor },
-        { value: "dark" as const, label: "Dark", icon: Moon },
+        { value: "light" as const, label: "Claro", icon: Sun },
+        { value: "system" as const, label: "Sistema", icon: Monitor },
+        { value: "dark" as const, label: "Oscuro", icon: Moon },
       ],
     [],
   );
@@ -146,8 +147,8 @@ export default function SettingsPage() {
   return (
     <div className="animate-fade-in">
       <PageHeader
-        title="Settings"
-        description="Manage your profile, appearance and workspace preferences."
+        title="Configuración"
+        description="Gestiona tu perfil, apariencia y preferencias del espacio de trabajo."
       />
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[200px_minmax(0,1fr)]">
@@ -200,13 +201,13 @@ export default function SettingsPage() {
       <Modal
         open={resetOpen}
         onClose={() => setResetOpen(false)}
-        title="Reset demo data"
-        description="This restores every project, task, KPI and document to the original seed. Any changes you made in this session will be lost."
+        title="Restablecer datos de demo"
+        description="Esto restaura cada proyecto, tarea, KPI y documento a los datos originales. Se perderán los cambios que hayas hecho en esta sesión."
         size="sm"
         footer={
           <>
             <Button variant="outline" onClick={() => setResetOpen(false)}>
-              Cancel
+              Cancelar
             </Button>
             <Button
               variant="danger"
@@ -215,7 +216,7 @@ export default function SettingsPage() {
                 setResetOpen(false);
               }}
             >
-              Reset everything
+              Restablecer todo
             </Button>
           </>
         }
@@ -223,7 +224,7 @@ export default function SettingsPage() {
         <div className="flex items-start gap-3 rounded-lg border border-danger/20 bg-danger/5 p-3">
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-danger" />
           <p className="text-sm text-muted-foreground">
-            This action cannot be undone. The workspace will reload its seeded demo content.
+            Esta acción no se puede deshacer. El espacio de trabajo recargará su contenido de demo inicial.
           </p>
         </div>
       </Modal>
@@ -261,7 +262,7 @@ function ProfilePanel() {
   const { me } = useMos();
   return (
     <Card>
-      <PanelHeader icon={User} title="Profile" description="Your identity across the workspace." />
+      <PanelHeader icon={User} title="Perfil" description="Tu identidad en todo el espacio de trabajo." />
       <div className="p-5">
         <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-center">
           <Avatar id={me.id} name={me.name} size={72} className="text-2xl" />
@@ -269,38 +270,40 @@ function ProfilePanel() {
             <div className="text-lg font-semibold tracking-tight">{me.name}</div>
             <div className="text-sm text-muted-foreground">{me.title}</div>
             <div className="mt-2 flex flex-wrap items-center justify-center gap-2 sm:justify-start">
-              <Badge tone="info">{me.department}</Badge>
-              <Badge tone={me.role === "admin" ? "primary" : "muted"}>{me.role}</Badge>
+              <Badge tone="info">{deptLabel(me.department)}</Badge>
+              <Badge tone={me.role === "admin" ? "primary" : "muted"}>
+                {me.role === "admin" ? "Administrador" : "Miembro"}
+              </Badge>
             </div>
           </div>
         </div>
 
         <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <Field label="Full name">
+          <Field label="Nombre completo">
             <Input value={me.name} disabled readOnly />
           </Field>
-          <Field label="Email">
+          <Field label="Correo">
             <Input value={me.email} disabled readOnly />
           </Field>
-          <Field label="Title">
+          <Field label="Cargo">
             <Input value={me.title} disabled readOnly />
           </Field>
-          <Field label="Department">
-            <Input value={me.department} disabled readOnly />
+          <Field label="Departamento">
+            <Input value={deptLabel(me.department)} disabled readOnly />
           </Field>
-          <Field label="Weekly capacity">
-            <Input value={`${me.weeklyCapacity} hours / week`} disabled readOnly />
+          <Field label="Capacidad semanal">
+            <Input value={`${me.weeklyCapacity} horas / semana`} disabled readOnly />
           </Field>
-          <Field label="Role">
-            <Input value={me.role === "admin" ? "Administrator" : "Member"} disabled readOnly />
+          <Field label="Rol">
+            <Input value={me.role === "admin" ? "Administrador" : "Miembro"} disabled readOnly />
           </Field>
         </div>
 
         <div className="mt-4 flex items-start gap-2.5 rounded-lg border border-border bg-muted/40 px-3.5 py-2.5">
           <Info className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
           <p className="text-xs text-muted-foreground">
-            Profile details are managed by your admin. Contact them to update your name, title or
-            capacity.
+            Los detalles del perfil son gestionados por tu administrador. Contáctalo para actualizar
+            tu nombre, cargo o capacidad.
           </p>
         </div>
       </div>
@@ -323,11 +326,11 @@ function AppearancePanel({
     <Card>
       <PanelHeader
         icon={Palette}
-        title="Appearance"
-        description="Choose how the workspace looks on this device."
+        title="Apariencia"
+        description="Elige cómo se ve el espacio de trabajo en este dispositivo."
       />
       <div className="p-5">
-        <Label>Theme</Label>
+        <Label>Tema</Label>
         <div className="mt-1 grid grid-cols-3 gap-3">
           {tiles.map(({ value, label, icon: Icon }) => {
             const selected = theme === value;
@@ -362,7 +365,7 @@ function AppearancePanel({
           })}
         </div>
         <p className="mt-3 text-xs text-muted-foreground">
-          System follows your device&apos;s appearance settings automatically.
+          Sistema sigue automáticamente la configuración de apariencia de tu dispositivo.
         </p>
       </div>
     </Card>
@@ -382,8 +385,8 @@ function NotificationsPanel({
     <Card>
       <PanelHeader
         icon={Bell}
-        title="Notifications"
-        description="Pick what you want to be told about."
+        title="Notificaciones"
+        description="Elige sobre qué quieres recibir avisos."
       />
       <div className="divide-y divide-border">
         {PREF_DEFS.map((p) => (
@@ -415,17 +418,17 @@ function WorkspacePanel({
   isAdmin: boolean;
 }) {
   const rows: { label: string; value: string }[] = [
-    { label: "Workspace name", value: "Merqueo Tires" },
-    { label: "Stores", value: "26 stores" },
-    { label: "Team size", value: `${teamSize} ${teamSize === 1 ? "member" : "members"}` },
-    { label: "Your role", value: role === "admin" ? "Administrator" : "Member" },
+    { label: "Nombre del espacio de trabajo", value: "Merqueo Tires" },
+    { label: "Tiendas", value: "26 tiendas" },
+    { label: "Tamaño del equipo", value: `${teamSize} ${teamSize === 1 ? "miembro" : "miembros"}` },
+    { label: "Tu rol", value: role === "admin" ? "Administrador" : "Miembro" },
   ];
   return (
     <Card>
       <PanelHeader
         icon={Building2}
-        title="Workspace"
-        description="Details about your marketing operations workspace."
+        title="Espacio de trabajo"
+        description="Detalles sobre tu espacio de operaciones de marketing."
       />
       <div className="divide-y divide-border">
         {rows.map((r) => (
@@ -440,9 +443,9 @@ function WorkspacePanel({
           <div className="flex items-start gap-2.5 rounded-lg border border-primary/20 bg-primary/5 px-3.5 py-2.5">
             <Info className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
             <p className="text-xs text-muted-foreground">
-              You have admin access. Manage team workload, projects and KPIs in the{" "}
+              Tienes acceso de administrador. Gestiona la carga del equipo, proyectos y KPIs en la{" "}
               <Link href="/admin" className="font-medium text-primary hover:underline">
-                admin console
+                consola de administración
               </Link>
               .
             </p>
@@ -468,13 +471,13 @@ function SwitchUserPanel({
     <Card>
       <PanelHeader
         icon={Users}
-        title="Switch user"
-        description="Impersonate a teammate to preview their view."
+        title="Cambiar de usuario"
+        description="Suplanta a un compañero para previsualizar su vista."
       />
       <div className="border-b border-border px-5 py-2.5">
-        <Badge tone="warning">Demo only</Badge>
+        <Badge tone="warning">Solo demo</Badge>
         <span className="ml-2 text-xs text-muted-foreground">
-          This is a sandbox affordance — no real authentication is involved.
+          Esta es una función de prueba — no involucra autenticación real.
         </span>
       </div>
       <div className="divide-y divide-border">
@@ -493,17 +496,17 @@ function SwitchUserPanel({
               <div className="min-w-0 flex-1 leading-tight">
                 <div className="flex items-center gap-2">
                   <span className="truncate text-sm font-medium">{p.name}</span>
-                  {p.role === "admin" && <Badge tone="primary">admin</Badge>}
+                  {p.role === "admin" && <Badge tone="primary">administrador</Badge>}
                 </div>
                 <div className="truncate text-xs text-muted-foreground">{p.title}</div>
               </div>
               {isCurrent ? (
                 <span className="flex items-center gap-1.5 text-xs font-medium text-primary">
                   <Check className="h-4 w-4" />
-                  Current
+                  Actual
                 </span>
               ) : (
-                <span className="text-xs font-medium text-muted-foreground">Switch</span>
+                <span className="text-xs font-medium text-muted-foreground">Cambiar</span>
               )}
             </button>
           );
@@ -520,19 +523,19 @@ function DangerPanel({ onReset }: { onReset: () => void }) {
     <Card className="border-danger/30">
       <PanelHeader
         icon={ShieldAlert}
-        title="Danger zone"
-        description="Irreversible actions for this workspace."
+        title="Zona de peligro"
+        description="Acciones irreversibles para este espacio de trabajo."
       />
       <div className="flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
-          <div className="text-sm font-medium">Reset demo data</div>
+          <div className="text-sm font-medium">Restablecer datos de demo</div>
           <p className="mt-0.5 text-xs text-muted-foreground">
-            Restore all seeded content and discard changes made in this session.
+            Restaura todo el contenido inicial y descarta los cambios hechos en esta sesión.
           </p>
         </div>
         <Button variant="danger" onClick={onReset} className="shrink-0">
           <AlertTriangle className="h-4 w-4" />
-          Reset demo data
+          Restablecer datos de demo
         </Button>
       </div>
     </Card>

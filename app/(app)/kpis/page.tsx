@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { format } from "date-fns";
+import { es } from "date-fns/locale";
 import { Plus, Target, TrendingDown, TrendingUp } from "lucide-react";
 import { useMos } from "@/lib/store";
 import type { Kpi, KpiCategory } from "@/lib/types";
@@ -32,7 +33,7 @@ const CATEGORY_ORDER: KpiCategory[] = ["marketing", "cx", "operations"];
 type Filter = "all" | KpiCategory;
 
 const FILTERS: { key: Filter; label: string }[] = [
-  { key: "all", label: "All" },
+  { key: "all", label: "Todas" },
   { key: "marketing", label: KPI_CATEGORY_META.marketing.label },
   { key: "cx", label: KPI_CATEGORY_META.cx.label },
   { key: "operations", label: KPI_CATEGORY_META.operations.label },
@@ -48,9 +49,9 @@ function kpiProgress(kpi: Kpi) {
 }
 
 function statusFor(progress: number): { tone: string; label: string } {
-  if (progress >= 100) return { tone: "success", label: "On target" };
-  if (progress >= 80) return { tone: "warning", label: "Close" };
-  return { tone: "danger", label: "Behind" };
+  if (progress >= 100) return { tone: "success", label: "En meta" };
+  if (progress >= 80) return { tone: "warning", label: "Cerca" };
+  return { tone: "danger", label: "Atrasado" };
 }
 
 function fmt(n: number) {
@@ -85,7 +86,7 @@ export default function KpisPage() {
     <div className="animate-fade-in">
       <PageHeader
         title="KPIs"
-        description="Targets, current performance and trends across marketing, CX and operations."
+        description="Metas, desempeño actual y tendencias en marketing, CX y operaciones."
       />
 
       {kpis.length === 0 ? (
@@ -161,12 +162,12 @@ function EmptyKpis({ filtered }: { filtered?: boolean }) {
         <Target className="h-5 w-5" />
       </div>
       <h3 className="text-sm font-semibold">
-        {filtered ? "No KPIs in this category" : "No KPIs yet"}
+        {filtered ? "No hay KPIs en esta categoría" : "Aún no hay KPIs"}
       </h3>
       <p className="mt-1 max-w-sm text-sm text-muted-foreground">
         {filtered
-          ? "Try a different category to see tracked metrics."
-          : "KPIs you track will show their targets, progress and trends here."}
+          ? "Prueba otra categoría para ver las métricas monitoreadas."
+          : "Los KPIs que monitorees mostrarán aquí sus metas, progreso y tendencias."}
       </p>
     </div>
   );
@@ -229,7 +230,7 @@ function KpiCard({
         <div className="mt-3">
           <div className="mb-1 flex items-center justify-between text-xs text-muted-foreground">
             <span>{progress}%</span>
-            <span>of target</span>
+            <span>de la meta</span>
           </div>
           <Progress value={progress} />
         </div>
@@ -246,10 +247,10 @@ function KpiCard({
           onClick={onOpen}
           className="text-xs font-medium text-primary hover:underline"
         >
-          Details
+          Detalles
         </button>
         <Button variant="ghost" size="sm" onClick={onUpdate}>
-          <Plus className="h-4 w-4" /> Update
+          <Plus className="h-4 w-4" /> Actualizar
         </Button>
       </div>
     </Card>
@@ -267,13 +268,13 @@ function KpiDetail({ kpiId, onClose }: { kpiId: string | null; onClose: () => vo
   const progress = kpiProgress(kpi);
   const status = statusFor(progress);
   const meta = KPI_CATEGORY_META[kpi.category];
-  const trend = history.map((u) => ({ label: format(new Date(u.date), "MMM"), value: u.value }));
+  const trend = history.map((u) => ({ label: format(new Date(u.date), "MMM", { locale: es }), value: u.value }));
 
   const stats = [
-    { label: "Current", value: `${fmt(kpi.current)}${kpi.unit}` },
-    { label: "Target", value: `${fmt(kpi.target)}${kpi.unit}` },
-    { label: "Progress", value: `${progress}%` },
-    { label: "Owner", value: owner?.name.split(" ")[0] ?? "—" },
+    { label: "Actual", value: `${fmt(kpi.current)}${kpi.unit}` },
+    { label: "Meta", value: `${fmt(kpi.target)}${kpi.unit}` },
+    { label: "Progreso", value: `${progress}%` },
+    { label: "Responsable", value: owner?.name.split(" ")[0] ?? "—" },
   ];
 
   return (
@@ -286,8 +287,8 @@ function KpiDetail({ kpiId, onClose }: { kpiId: string | null; onClose: () => vo
           </div>
           <h2 className="mt-2 text-lg font-semibold tracking-tight">{kpi.name}</h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            {kpi.direction === "up" ? "Higher is better" : "Lower is better"} · last
-            updated {format(new Date(kpi.updatedAt), "MMM d, yyyy")}
+            {kpi.direction === "up" ? "Más alto es mejor" : "Más bajo es mejor"} ·
+            última actualización {format(new Date(kpi.updatedAt), "d 'de' MMM, yyyy", { locale: es })}
           </p>
         </div>
 
@@ -296,7 +297,7 @@ function KpiDetail({ kpiId, onClose }: { kpiId: string | null; onClose: () => vo
             <AreaTrend data={trend} color={CATEGORY_COLOR[kpi.category]} height={220} unit={kpi.unit} />
           ) : (
             <p className="py-10 text-center text-sm text-muted-foreground">
-              Not enough history to chart yet.
+              Aún no hay suficiente historial para graficar.
             </p>
           )}
         </Card>
@@ -312,14 +313,14 @@ function KpiDetail({ kpiId, onClose }: { kpiId: string | null; onClose: () => vo
 
         <div>
           <div className="mb-2 flex items-center justify-between text-sm">
-            <span className="font-medium">Progress to target</span>
+            <span className="font-medium">Progreso hacia la meta</span>
             <span className="text-muted-foreground">{progress}%</span>
           </div>
           <Progress value={progress} />
         </div>
 
         <div>
-          <div className="mb-2 text-sm font-medium">Log a new value</div>
+          <div className="mb-2 text-sm font-medium">Registrar nuevo valor</div>
           <UpdateForm kpi={kpi} />
         </div>
       </div>
@@ -332,7 +333,7 @@ function UpdateModal({ kpiId, onClose }: { kpiId: string | null; onClose: () => 
   const kpi = data.kpis.find((k) => k.id === kpiId);
   if (!kpi) return null;
   return (
-    <Modal open={!!kpiId} onClose={onClose} title={`Update — ${kpi.name}`} size="sm">
+    <Modal open={!!kpiId} onClose={onClose} title={`Actualizar — ${kpi.name}`} size="sm">
       <UpdateForm kpi={kpi} onDone={onClose} />
     </Modal>
   );
@@ -355,7 +356,7 @@ function UpdateForm({ kpi, onDone }: { kpi: Kpi; onDone?: () => void }) {
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <Field label={`New value (${kpi.unit})`}>
+        <Field label={`Nuevo valor (${kpi.unit})`}>
           <input
             type="number"
             value={value}
@@ -365,24 +366,24 @@ function UpdateForm({ kpi, onDone }: { kpi: Kpi; onDone?: () => void }) {
             className="h-9 w-full rounded-lg border border-border bg-input/40 px-3 text-sm text-foreground placeholder:text-muted-foreground/70 transition-colors focus:border-ring focus:bg-card focus:outline-none"
           />
         </Field>
-        <Field label="Current target">
+        <Field label="Meta actual">
           <div className="flex h-9 items-center rounded-lg border border-border bg-muted px-3 text-sm text-muted-foreground">
             {fmt(kpi.target)}
             {kpi.unit}
           </div>
         </Field>
       </div>
-      <Field label="Note (optional)">
+      <Field label="Nota (opcional)">
         <Textarea
           value={note}
           onChange={(e) => setNote(e.target.value)}
-          placeholder="What changed?"
+          placeholder="¿Qué cambió?"
           className="min-h-[60px]"
         />
       </Field>
       <div className="flex justify-end">
         <Button onClick={save} disabled={value.trim() === "" || Number.isNaN(Number(value))}>
-          Save update
+          Guardar actualización
         </Button>
       </div>
     </div>

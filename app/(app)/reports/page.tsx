@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 import { format } from "date-fns";
+import { es } from "date-fns/locale";
 import {
   Download,
   FileSpreadsheet,
@@ -23,7 +24,7 @@ import {
   projectHealth,
   HEALTH_META,
 } from "@/lib/selectors";
-import { KPI_CATEGORY_META, PRIORITY_META, PROJECT_STATUS_META } from "@/lib/labels";
+import { KPI_CATEGORY_META, PRIORITY_META, PROJECT_STATUS_META, deptLabel } from "@/lib/labels";
 import type { MosData } from "@/lib/types";
 import {
   exportCsv,
@@ -43,21 +44,21 @@ type ReportTable = { headers: string[]; rows: Cell[][] };
 const FILE_PREFIX = "merqueo-";
 
 function nameOf(data: MosData, id: string | undefined | null) {
-  return data.profiles.find((p) => p.id === id)?.name ?? "Unassigned";
+  return data.profiles.find((p) => p.id === id)?.name ?? "Sin asignar";
 }
 
 // ── Report builders ────────────────────────────────────────────────────────
 
 function teamPerformanceReport(data: MosData): ReportTable {
   const headers = [
-    "Name",
-    "Title",
-    "Department",
-    "Open tasks",
-    "Completed",
-    "Utilization %",
-    "Planned hrs",
-    "Logged hrs",
+    "Nombre",
+    "Cargo",
+    "Departamento",
+    "Tareas abiertas",
+    "Completadas",
+    "Utilización %",
+    "Horas planeadas",
+    "Horas registradas",
   ];
   const rows: Cell[][] = data.profiles.map((p) => {
     const completed = data.tasks.filter(
@@ -66,7 +67,7 @@ function teamPerformanceReport(data: MosData): ReportTable {
     return [
       p.name,
       p.title,
-      p.department,
+      deptLabel(p.department),
       openTasksFor(data, p.id).length,
       completed,
       capacityUtilization(data, p),
@@ -79,19 +80,19 @@ function teamPerformanceReport(data: MosData): ReportTable {
 
 function workloadReport(data: MosData): ReportTable {
   const headers = [
-    "Name",
-    "Weekly capacity",
-    "Planned hrs",
-    "Utilization %",
-    "Overdue",
-    "Status",
+    "Nombre",
+    "Capacidad semanal",
+    "Horas planeadas",
+    "Utilización %",
+    "Vencidas",
+    "Estado",
   ];
   const rows: Cell[][] = data.profiles.map((p) => {
     const util = capacityUtilization(data, p);
     const overdue = data.tasks.filter(
       (t) => t.assigneeId === p.id && isOverdue(t),
     ).length;
-    const status = util > 100 ? "Over" : util > 80 ? "High" : "Healthy";
+    const status = util > 100 ? "Sobrecargado" : util > 80 ? "Alto" : "Saludable";
     return [
       p.name,
       `${p.weeklyCapacity}h`,
@@ -106,15 +107,15 @@ function workloadReport(data: MosData): ReportTable {
 
 function projectStatusReport(data: MosData): ReportTable {
   const headers = [
-    "Project",
-    "Owner",
-    "Status",
-    "Priority",
-    "Department",
-    "Progress %",
-    "Tasks",
-    "Health",
-    "Due date",
+    "Proyecto",
+    "Responsable",
+    "Estado",
+    "Prioridad",
+    "Departamento",
+    "Progreso %",
+    "Tareas",
+    "Salud",
+    "Fecha límite",
   ];
   const rows: Cell[][] = data.projects.map((p) => {
     const taskCount = data.tasks.filter((t) => t.projectId === p.id).length;
@@ -124,11 +125,11 @@ function projectStatusReport(data: MosData): ReportTable {
       nameOf(data, p.ownerId),
       PROJECT_STATUS_META[p.status].label,
       PRIORITY_META[p.priority].label,
-      p.department,
+      deptLabel(p.department),
       p.progress,
       taskCount,
       health,
-      p.dueDate ? format(new Date(p.dueDate), "MMM d, yyyy") : "—",
+      p.dueDate ? format(new Date(p.dueDate), "d 'de' MMM, yyyy", { locale: es }) : "—",
     ];
   });
   return { headers, rows };
@@ -143,17 +144,17 @@ function kpiProgress(current: number, target: number, direction: "up" | "down") 
 function kpiReport(data: MosData): ReportTable {
   const headers = [
     "KPI",
-    "Category",
-    "Owner",
-    "Current",
-    "Target",
-    "Unit",
-    "Progress %",
-    "Status",
+    "Categoría",
+    "Responsable",
+    "Actual",
+    "Meta",
+    "Unidad",
+    "Progreso %",
+    "Estado",
   ];
   const rows: Cell[][] = data.kpis.map((k) => {
     const prog = kpiProgress(k.current, k.target, k.direction);
-    const status = prog >= 100 ? "On target" : prog >= 75 ? "On track" : "Behind";
+    const status = prog >= 100 ? "En meta" : prog >= 75 ? "En camino" : "Atrasado";
     return [
       k.name,
       KPI_CATEGORY_META[k.category].label,
@@ -227,7 +228,7 @@ function PreviewTable({ table }: { table: ReportTable }) {
                 colSpan={4}
                 className="px-2.5 py-4 text-center text-muted-foreground"
               >
-                No data available.
+                No hay datos disponibles.
               </td>
             </tr>
           )}
@@ -261,10 +262,11 @@ function ReportCard({
   const onPdf = () =>
     exportPdf(
       pdfTitle,
-      `<h1>${pdfTitle}</h1><p class="muted">Generated ${format(
+      `<h1>${pdfTitle}</h1><p class="muted">Generado ${format(
         new Date(),
-        "MMMM d, yyyy",
-      )}</p>${statGrid(stats)}<h2>Detail</h2>${htmlTable(
+        "d 'de' MMMM 'de' yyyy",
+        { locale: es },
+      )}</p>${statGrid(stats)}<h2>Detalle</h2>${htmlTable(
         table.headers,
         table.rows,
       )}`,
@@ -281,7 +283,7 @@ function ReportCard({
           <p className="mt-0.5 text-xs text-muted-foreground">{description}</p>
         </div>
         <span className="ml-auto shrink-0 text-xs text-muted-foreground">
-          {table.rows.length} rows
+          {table.rows.length} filas
         </span>
       </div>
 
@@ -324,48 +326,49 @@ export default function ReportsPage() {
   const avgUtil = avgUtilization(data);
 
   const baseStats: { k: string; v: Cell }[] = [
-    { k: "Team size", v: data.profiles.length },
-    { k: "Avg utilization", v: `${avgUtil}%` },
-    { k: "Completion rate", v: `${cRate}%` },
-    { k: "On-time rate", v: `${otRate}%` },
+    { k: "Tamaño del equipo", v: data.profiles.length },
+    { k: "Utilización promedio", v: `${avgUtil}%` },
+    { k: "Tasa de finalización", v: `${cRate}%` },
+    { k: "Tasa a tiempo", v: `${otRate}%` },
   ];
 
   const exportFullScorecard = () => {
     exportPdf(
-      "Department Scorecard",
-      `<h1>Department Scorecard</h1>` +
-        `<p class="muted">Merqueo MOS · Generated ${format(
+      "Scorecard del departamento",
+      `<h1>Scorecard del departamento</h1>` +
+        `<p class="muted">Merqueo MOS · Generado ${format(
           new Date(),
-          "MMMM d, yyyy",
+          "d 'de' MMMM 'de' yyyy",
+          { locale: es },
         )}</p>` +
         statGrid([
-          { k: "Completion rate", v: `${cRate}%` },
-          { k: "On-time rate", v: `${otRate}%` },
-          { k: "Active projects", v: activeProjects },
-          { k: "Avg KPI attainment", v: `${kpiAttainment}%` },
+          { k: "Tasa de finalización", v: `${cRate}%` },
+          { k: "Tasa a tiempo", v: `${otRate}%` },
+          { k: "Proyectos activos", v: activeProjects },
+          { k: "Cumplimiento promedio de KPIs", v: `${kpiAttainment}%` },
         ]) +
-        `<h2>Team Performance</h2>${htmlTable(team.headers, team.rows)}` +
-        `<h2>Workload</h2>${htmlTable(workload.headers, workload.rows)}` +
-        `<h2>Project Status</h2>${htmlTable(projects.headers, projects.rows)}` +
-        `<h2>KPI Report</h2>${htmlTable(kpis.headers, kpis.rows)}`,
+        `<h2>Desempeño del equipo</h2>${htmlTable(team.headers, team.rows)}` +
+        `<h2>Carga de trabajo</h2>${htmlTable(workload.headers, workload.rows)}` +
+        `<h2>Estado de proyectos</h2>${htmlTable(projects.headers, projects.rows)}` +
+        `<h2>Reporte de KPIs</h2>${htmlTable(kpis.headers, kpis.rows)}`,
     );
   };
 
   return (
     <div className="animate-fade-in">
       <PageHeader
-        title="Reports"
-        description="Generate and export team, workload, project and KPI reports."
+        title="Reportes"
+        description="Genera y exporta reportes de equipo, carga de trabajo, proyectos y KPIs."
         actions={
           <Button onClick={exportFullScorecard}>
             <Download className="h-4 w-4" />
-            Export full scorecard
+            Exportar scorecard completo
           </Button>
         }
       />
 
       {/* Department scorecard summary */}
-      <SectionTitle>Department scorecard</SectionTitle>
+      <SectionTitle>Scorecard del departamento</SectionTitle>
       <Card className="p-5">
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
           <div className="flex flex-col items-center">
@@ -377,89 +380,89 @@ export default function ReportsPage() {
           <div className="flex flex-col justify-center gap-1 rounded-lg border border-border bg-muted/30 px-4 py-3">
             <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
               <FolderKanban className="h-3.5 w-3.5" />
-              Active projects
+              Proyectos activos
             </div>
             <div className="text-3xl font-semibold tracking-tight">
               {activeProjects}
             </div>
             <div className="text-xs text-muted-foreground">
-              of {data.projects.length} total
+              de {data.projects.length} en total
             </div>
           </div>
           <div className="flex flex-col justify-center gap-1 rounded-lg border border-border bg-muted/30 px-4 py-3">
             <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
               <Target className="h-3.5 w-3.5" />
-              Avg KPI attainment
+              Cumplimiento promedio de KPIs
             </div>
             <div className="text-3xl font-semibold tracking-tight">
               {kpiAttainment}%
             </div>
             <div className="text-xs text-muted-foreground">
-              across {data.kpis.length} KPIs
+              en {data.kpis.length} KPIs
             </div>
           </div>
         </div>
         <div className="mt-4 flex justify-end border-t border-border pt-4">
           <Button variant="secondary" size="sm" onClick={exportFullScorecard}>
             <FileText className="h-3.5 w-3.5" />
-            Export full scorecard (PDF)
+            Exportar scorecard completo (PDF)
           </Button>
         </div>
       </Card>
 
       {/* Report cards */}
       <div className="mt-6">
-        <SectionTitle>Reports</SectionTitle>
+        <SectionTitle>Reportes</SectionTitle>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <ReportCard
             icon={Users}
-            title="Team Performance"
-            description="Tasks, capacity and hours logged per teammate."
+            title="Desempeño del equipo"
+            description="Tareas, capacidad y horas registradas por cada miembro."
             table={team}
             filename="team-performance"
-            pdfTitle="Team Performance Report"
+            pdfTitle="Reporte de desempeño del equipo"
             stats={baseStats}
           />
           <ReportCard
             icon={GaugeIcon}
-            title="Workload"
-            description="Capacity utilization and overdue load by person."
+            title="Carga de trabajo"
+            description="Utilización de capacidad y carga vencida por persona."
             table={workload}
             filename="workload"
-            pdfTitle="Workload Report"
+            pdfTitle="Reporte de carga de trabajo"
             stats={[
-              { k: "Team size", v: data.profiles.length },
-              { k: "Avg utilization", v: `${avgUtil}%` },
-              { k: "Active projects", v: activeProjects },
-              { k: "Completion rate", v: `${cRate}%` },
+              { k: "Tamaño del equipo", v: data.profiles.length },
+              { k: "Utilización promedio", v: `${avgUtil}%` },
+              { k: "Proyectos activos", v: activeProjects },
+              { k: "Tasa de finalización", v: `${cRate}%` },
             ]}
           />
           <ReportCard
             icon={FolderKanban}
-            title="Project Status"
-            description="Status, progress and health across all projects."
+            title="Estado de proyectos"
+            description="Estado, progreso y salud de todos los proyectos."
             table={projects}
             filename="project-status"
-            pdfTitle="Project Status Report"
+            pdfTitle="Reporte de estado de proyectos"
             stats={[
-              { k: "Projects", v: data.projects.length },
-              { k: "Active projects", v: activeProjects },
-              { k: "Completion rate", v: `${cRate}%` },
-              { k: "On-time rate", v: `${otRate}%` },
+              { k: "Proyectos", v: data.projects.length },
+              { k: "Proyectos activos", v: activeProjects },
+              { k: "Tasa de finalización", v: `${cRate}%` },
+              { k: "Tasa a tiempo", v: `${otRate}%` },
             ]}
           />
           <ReportCard
             icon={Target}
-            title="KPI Report"
-            description="Attainment against targets for every tracked KPI."
+            title="Reporte de KPIs"
+            description="Cumplimiento frente a la meta de cada KPI monitoreado."
             table={kpis}
             filename="kpi-report"
-            pdfTitle="KPI Report"
+            pdfTitle="Reporte de KPIs"
             stats={[
-              { k: "KPIs tracked", v: data.kpis.length },
-              { k: "Avg attainment", v: `${kpiAttainment}%` },
-              { k: "Completion rate", v: `${cRate}%` },
-              { k: "On-time rate", v: `${otRate}%` },
+              { k: "KPIs monitoreados", v: data.kpis.length },
+              { k: "Cumplimiento promedio", v: `${kpiAttainment}%` },
+              { k: "Tasa de finalización", v: `${cRate}%` },
+              { k: "Tasa a tiempo", v: `${otRate}%` },
             ]}
           />
         </div>

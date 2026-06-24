@@ -16,7 +16,7 @@ import {
   PROJECT_STATUSES,
 } from "@/lib/types";
 import type { Project, ProjectStatus } from "@/lib/types";
-import { PROJECT_STATUS_META } from "@/lib/labels";
+import { PRIORITY_META, PROJECT_STATUS_META, deptLabel } from "@/lib/labels";
 import { HEALTH_META, projectHealth } from "@/lib/selectors";
 import { PageHeader } from "@/components/page-header";
 import {
@@ -60,19 +60,19 @@ function ProjectsInner() {
 
   const views: { key: View; label: string; icon: typeof Columns3 }[] = [
     { key: "kanban", label: "Kanban", icon: Columns3 },
-    { key: "table", label: "Table", icon: Table2 },
-    { key: "timeline", label: "Timeline", icon: GanttChartSquare },
+    { key: "table", label: "Tabla", icon: Table2 },
+    { key: "timeline", label: "Cronograma", icon: GanttChartSquare },
   ];
 
   return (
     <div className="animate-fade-in">
       <PageHeader
-        title="Projects"
-        description="Plan and track every marketing initiative across the 26 stores."
+        title="Proyectos"
+        description="Planifica y haz seguimiento a cada iniciativa de marketing en las 26 tiendas."
         actions={
           <Button onClick={() => setComposer({ open: true })}>
             <Plus className="h-4 w-4" />
-            New project
+            Nuevo proyecto
           </Button>
         }
       />
@@ -128,13 +128,13 @@ function ProjectCard({ project, onOpen }: { project: Project; onOpen: (id: strin
       </div>
       <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{project.description}</p>
       <div className="mt-3 flex flex-wrap items-center gap-1.5">
-        <Badge tone="muted">{project.department}</Badge>
+        <Badge tone="muted">{deptLabel(project.department)}</Badge>
         <PriorityBadge priority={project.priority} />
       </div>
       <div className="mt-3">
         <div className="mb-1 flex items-center justify-between text-xs text-muted-foreground">
           <span>{project.progress}%</span>
-          <span>{taskCount} tasks</span>
+          <span>{taskCount} tareas</span>
         </div>
         <Progress value={project.progress} />
       </div>
@@ -169,7 +169,7 @@ function KanbanView({ onOpen }: { onOpen: (id: string) => void }) {
               ))}
               {!items.length && (
                 <div className="rounded-xl border border-dashed border-border py-8 text-center text-xs text-muted-foreground">
-                  Nothing here
+                  Nada por aquí
                 </div>
               )}
             </div>
@@ -188,13 +188,13 @@ function TableView({ onOpen }: { onOpen: (id: string) => void }) {
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-border text-left text-xs text-muted-foreground">
-              <th className="px-4 py-2.5 font-medium">Project</th>
-              <th className="px-4 py-2.5 font-medium">Status</th>
-              <th className="px-4 py-2.5 font-medium">Owner</th>
-              <th className="px-4 py-2.5 font-medium">Priority</th>
-              <th className="hidden px-4 py-2.5 font-medium md:table-cell">Department</th>
-              <th className="px-4 py-2.5 font-medium">Progress</th>
-              <th className="hidden px-4 py-2.5 font-medium sm:table-cell">Due</th>
+              <th className="px-4 py-2.5 font-medium">Proyecto</th>
+              <th className="px-4 py-2.5 font-medium">Estado</th>
+              <th className="px-4 py-2.5 font-medium">Responsable</th>
+              <th className="px-4 py-2.5 font-medium">Prioridad</th>
+              <th className="hidden px-4 py-2.5 font-medium md:table-cell">Departamento</th>
+              <th className="px-4 py-2.5 font-medium">Progreso</th>
+              <th className="hidden px-4 py-2.5 font-medium sm:table-cell">Vence</th>
             </tr>
           </thead>
           <tbody>
@@ -217,7 +217,7 @@ function TableView({ onOpen }: { onOpen: (id: string) => void }) {
                     )}
                   </td>
                   <td className="px-4 py-3"><PriorityBadge priority={p.priority} /></td>
-                  <td className="hidden px-4 py-3 text-muted-foreground md:table-cell">{p.department}</td>
+                  <td className="hidden px-4 py-3 text-muted-foreground md:table-cell">{deptLabel(p.department)}</td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
                       <Progress value={p.progress} className="w-20" />
@@ -349,53 +349,53 @@ function ProjectComposer({
     <Modal
       open={open}
       onClose={onClose}
-      title={editing ? "Edit project" : "New project"}
+      title={editing ? "Editar proyecto" : "Nuevo proyecto"}
       size="lg"
       footer={
         <>
-          <Button variant="outline" onClick={onClose}>Cancel</Button>
-          <Button onClick={save}>{editing ? "Save" : "Create project"}</Button>
+          <Button variant="outline" onClick={onClose}>Cancelar</Button>
+          <Button onClick={save}>{editing ? "Guardar" : "Crear proyecto"}</Button>
         </>
       }
     >
       <div className="space-y-4">
-        <Field label="Name">
-          <Input value={form.name} onChange={(e) => set("name", e.target.value)} placeholder="e.g. Q4 Loyalty Push" autoFocus />
+        <Field label="Nombre">
+          <Input value={form.name} onChange={(e) => set("name", e.target.value)} placeholder="ej. Impulso de fidelización Q4" autoFocus />
         </Field>
-        <Field label="Description">
+        <Field label="Descripción">
           <Textarea value={form.description} onChange={(e) => set("description", e.target.value)} />
         </Field>
         <div className="grid grid-cols-2 gap-3">
-          <Field label="Owner">
+          <Field label="Responsable">
             <Select value={form.ownerId} onChange={(e) => set("ownerId", e.target.value)}>
               {data.profiles.map((p) => (
                 <option key={p.id} value={p.id}>{p.name}</option>
               ))}
             </Select>
           </Field>
-          <Field label="Department">
+          <Field label="Departamento">
             <Select value={form.department} onChange={(e) => set("department", e.target.value)}>
-              {DEPARTMENTS.map((d) => <option key={d} value={d}>{d}</option>)}
+              {DEPARTMENTS.map((d) => <option key={d} value={d}>{deptLabel(d)}</option>)}
             </Select>
           </Field>
-          <Field label="Status">
+          <Field label="Estado">
             <Select value={form.status} onChange={(e) => set("status", e.target.value)}>
               {PROJECT_STATUSES.map((s) => <option key={s} value={s}>{PROJECT_STATUS_META[s].label}</option>)}
             </Select>
           </Field>
-          <Field label="Priority">
+          <Field label="Prioridad">
             <Select value={form.priority} onChange={(e) => set("priority", e.target.value)}>
-              {PRIORITIES.map((p) => <option key={p} value={p}>{p[0].toUpperCase() + p.slice(1)}</option>)}
+              {PRIORITIES.map((p) => <option key={p} value={p}>{PRIORITY_META[p].label}</option>)}
             </Select>
           </Field>
-          <Field label="Start date">
+          <Field label="Fecha de inicio">
             <Input type="date" value={form.startDate} onChange={(e) => set("startDate", e.target.value)} />
           </Field>
-          <Field label="Due date">
+          <Field label="Fecha límite">
             <Input type="date" value={form.dueDate} onChange={(e) => set("dueDate", e.target.value)} />
           </Field>
         </div>
-        <Field label={`Progress — ${form.progress}%`}>
+        <Field label={`Progreso — ${form.progress}%`}>
           <input
             type="range"
             min={0}
@@ -438,9 +438,9 @@ function ProjectDetail({
         footer={
           <>
             <Button variant="ghost" className="mr-auto" onClick={() => setTaskComposer({ open: true })}>
-              <Plus className="h-4 w-4" /> Add task
+              <Plus className="h-4 w-4" /> Agregar tarea
             </Button>
-            <Button variant="outline" onClick={() => onEdit(project.id)}>Edit project</Button>
+            <Button variant="outline" onClick={() => onEdit(project.id)}>Editar proyecto</Button>
           </>
         }
       >
@@ -457,10 +457,10 @@ function ProjectDetail({
 
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             {[
-              { label: "Owner", value: owner?.name.split(" ")[0] ?? "—" },
-              { label: "Department", value: project.department },
-              { label: "Due", value: format(new Date(project.dueDate), "MMM d") },
-              { label: daysLeft < 0 ? "Overdue" : "Days left", value: Math.abs(daysLeft) },
+              { label: "Responsable", value: owner?.name.split(" ")[0] ?? "—" },
+              { label: "Departamento", value: deptLabel(project.department) },
+              { label: "Vence", value: format(new Date(project.dueDate), "MMM d") },
+              { label: daysLeft < 0 ? "Vencido" : "Días restantes", value: Math.abs(daysLeft) },
             ].map((s) => (
               <div key={s.label} className="rounded-lg border border-border bg-surface/50 p-3">
                 <div className="text-xs text-muted-foreground">{s.label}</div>
@@ -471,8 +471,8 @@ function ProjectDetail({
 
           <div>
             <div className="mb-2 flex items-center justify-between text-sm">
-              <span className="font-medium">Progress</span>
-              <span className="text-muted-foreground">{project.progress}% · {done}/{tasks.length} tasks done</span>
+              <span className="font-medium">Progreso</span>
+              <span className="text-muted-foreground">{project.progress}% · {done}/{tasks.length} tareas completadas</span>
             </div>
             <input
               type="range"
@@ -485,7 +485,7 @@ function ProjectDetail({
           </div>
 
           <div>
-            <div className="mb-2 text-sm font-medium">Tasks</div>
+            <div className="mb-2 text-sm font-medium">Tareas</div>
             <div className="overflow-hidden rounded-lg border border-border">
               {tasks.length ? (
                 <div className="divide-y divide-border">
@@ -494,7 +494,7 @@ function ProjectDetail({
                   ))}
                 </div>
               ) : (
-                <p className="px-4 py-6 text-center text-sm text-muted-foreground">No tasks yet.</p>
+                <p className="px-4 py-6 text-center text-sm text-muted-foreground">Aún no hay tareas.</p>
               )}
             </div>
           </div>
