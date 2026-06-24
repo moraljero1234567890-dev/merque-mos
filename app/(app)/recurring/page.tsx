@@ -57,10 +57,14 @@ function stepDate(date: Date, freq: Frequency): Date {
       return addDays(date, 1);
     case "weekly":
       return addWeeks(date, 1);
+    case "biweekly":
+      return addWeeks(date, 2);
     case "monthly":
       return addMonths(date, 1);
     case "quarterly":
       return addQuarters(date, 1);
+    case "semiannual":
+      return addMonths(date, 6);
     case "yearly":
       return addYears(date, 1);
   }
@@ -81,8 +85,10 @@ function nextOccurrence(r: RecurringTask): Date {
 const WEEKLY_FACTOR: Record<Frequency, number> = {
   daily: 5,
   weekly: 1,
+  biweekly: 1 / 2,
   monthly: 1 / 4.3,
   quarterly: 1 / 13,
+  semiannual: 1 / 26,
   yearly: 1 / 52,
 };
 

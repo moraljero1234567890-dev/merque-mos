@@ -41,8 +41,10 @@ export const PRIORITY_META: Record<
 export const FREQUENCY_META: Record<Frequency, { label: string }> = {
   daily: { label: "Daily" },
   weekly: { label: "Weekly" },
+  biweekly: { label: "Biweekly" },
   monthly: { label: "Monthly" },
   quarterly: { label: "Quarterly" },
+  semiannual: { label: "Semiannual" },
   yearly: { label: "Yearly" },
 };
 

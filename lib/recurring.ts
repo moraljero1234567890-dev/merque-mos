@@ -19,10 +19,14 @@ function step(date: Date, freq: Frequency): Date {
       return addDays(date, 1);
     case "weekly":
       return addWeeks(date, 1);
+    case "biweekly":
+      return addWeeks(date, 2);
     case "monthly":
       return addMonths(date, 1);
     case "quarterly":
       return addQuarters(date, 1);
+    case "semiannual":
+      return addMonths(date, 6);
     case "yearly":
       return addYears(date, 1);
   }

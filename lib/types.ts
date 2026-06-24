@@ -47,12 +47,21 @@ export const TASK_STATUSES: TaskStatus[] = [
   "done",
 ];
 
-export type Frequency = "daily" | "weekly" | "monthly" | "quarterly" | "yearly";
+export type Frequency =
+  | "daily"
+  | "weekly"
+  | "biweekly"
+  | "monthly"
+  | "quarterly"
+  | "semiannual"
+  | "yearly";
 export const FREQUENCIES: Frequency[] = [
   "daily",
   "weekly",
+  "biweekly",
   "monthly",
   "quarterly",
+  "semiannual",
   "yearly",
 ];
 

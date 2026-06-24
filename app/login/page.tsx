@@ -12,6 +12,14 @@ const FEATURES = [
   "KPIs, meeting action items and exportable reports",
 ];
 
+// Demo-mode access gate. In live mode, Supabase auth replaces all of this.
+const ACCESS_PASSWORD = "Anajaramillo2003";
+const DEMO_USERS: Record<string, string> = {
+  "jeronimo@tirepro.com.co": "u1",
+  "alejandro@tirepro.com.co": "u2",
+  "andres@tirepro.com.co": "u3",
+};
+
 export default function LoginPage() {
   return (
     <Suspense fallback={null}>
@@ -24,8 +32,8 @@ function LoginInner() {
   const router = useRouter();
   const params = useSearchParams();
   const next = params.get("next") || "/dashboard";
-  const [email, setEmail] = useState("valentina@merqueo-tires.co");
-  const [password, setPassword] = useState("demo");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -48,8 +56,19 @@ function LoginInner() {
       return;
     }
 
-    // Demo mode — no backend required.
-    setTimeout(() => router.push(next), 350);
+    // Demo mode — shared password gate, identity chosen by email.
+    if (password !== ACCESS_PASSWORD) {
+      setError("Incorrect email or password.");
+      setLoading(false);
+      return;
+    }
+    const userId = DEMO_USERS[email.trim().toLowerCase()] ?? "u1";
+    try {
+      window.localStorage.setItem("mos:user:v1", userId);
+    } catch {
+      /* private mode — store falls back to default user */
+    }
+    setTimeout(() => router.push(next), 300);
   };
 
   return (
@@ -97,7 +116,7 @@ function LoginInner() {
           <form onSubmit={submit} className="mt-6 space-y-4">
             <div>
               <Label>Work email</Label>
-              <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@merqueo-tires.co" />
+              <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@tirepro.com.co" />
             </div>
             <div>
               <Label>Password</Label>
@@ -113,11 +132,6 @@ function LoginInner() {
               {!loading && <ArrowRight className="h-4 w-4" />}
             </Button>
           </form>
-
-          <div className="mt-6 rounded-lg border border-dashed border-border bg-surface/50 p-3 text-xs text-muted-foreground">
-            <span className="font-medium text-foreground">Demo mode.</span> No backend required — any
-            credentials continue to a fully seeded workspace. Add Supabase keys in <code className="font-mono">.env.local</code> to go live.
-          </div>
         </div>
       </div>
     </div>

@@ -11,7 +11,7 @@ create type department        as enum ('Brand', 'Content', 'Performance', 'CRM',
 create type priority          as enum ('low', 'medium', 'high', 'urgent');
 create type project_status    as enum ('planning', 'active', 'on_hold', 'completed', 'cancelled');
 create type task_status       as enum ('backlog', 'todo', 'in_progress', 'waiting', 'done');
-create type frequency         as enum ('daily', 'weekly', 'monthly', 'quarterly', 'yearly');
+create type frequency         as enum ('daily', 'weekly', 'biweekly', 'monthly', 'quarterly', 'semiannual', 'yearly');
 create type kpi_category      as enum ('marketing', 'cx', 'operations');
 create type kpi_direction     as enum ('up', 'down');
 create type doc_type          as enum ('folder', 'file');

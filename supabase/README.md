@@ -25,12 +25,20 @@ supabase db push        # applies migrations/0001_schema.sql then 0002_rls.sql
   write for authenticated members) with destructive / config surfaces gated to
   admins via the `is_admin()` security-definer function.
 
-## 4. Create the first admin
-Add a user in *Authentication → Users* (or let them sign up), then in the SQL
-editor:
+## 4. Create the three users
+In *Authentication → Users → Add user*, create each with the shared password
+`Anajaramillo2003` (and "Auto confirm"):
+- `jeronimo@tirepro.com.co`
+- `alejandro@tirepro.com.co`
+- `andres@tirepro.com.co`
+
+The `handle_new_user` trigger auto-creates their `profiles` row. Then promote
+Jerónimo to admin in the SQL editor:
 ```sql
-update profiles set role = 'admin' where email = 'you@merqueo-tires.co';
+update profiles set role = 'admin', title = 'Head of Marketing'
+where email = 'jeronimo@tirepro.com.co';
 ```
+(Optionally set names/titles for the other two the same way.)
 
 ## Auth flow
 - `proxy.ts` (this Next.js version renamed `middleware` → `proxy`) refreshes the
