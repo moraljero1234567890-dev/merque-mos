@@ -58,6 +58,8 @@ export function clamp(n: number, min = 0, max = 100) {
 }
 
 export function uid(prefix = "id") {
-  // Deterministic-enough unique id without Math.random at module load.
+  // Real UUIDs so client-created rows are insertable into Supabase uuid columns.
+  if (typeof crypto !== "undefined" && crypto.randomUUID) return crypto.randomUUID();
+  // Fallback (older environments).
   return `${prefix}_${Date.now().toString(36)}${(performance.now() | 0).toString(36)}`;
 }

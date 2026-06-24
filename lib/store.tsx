@@ -9,9 +9,18 @@ import {
   useState,
 } from "react";
 import { formatISO } from "date-fns";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { buildSeed } from "./seed";
 import { generateOccurrences } from "./recurring";
 import { uid } from "./utils";
+import { createClient, isSupabaseConfigured } from "./supabase/client";
+import {
+  addCategory,
+  deleteRow,
+  loadAll,
+  removeCategory,
+  saveRow,
+} from "./supabase/data";
 import type {
   Announcement,
   BudgetLine,
@@ -63,6 +72,7 @@ interface MosContextValue {
   setCurrentUserId: (id: string) => void;
   me: MosData["profiles"][number];
   isAdmin: boolean;
+  live: boolean; // true when backed by Supabase (vs local demo)
 
   // tasks
   createTask: (input: Partial<Task> & { title: string }) => Task;
@@ -114,21 +124,65 @@ export function MosProvider({ children }: { children: React.ReactNode }) {
   const [data, setData] = useState<MosData | null>(null);
   const [currentUserId, setCurrentUserIdState] = useState("u1");
   const persistRef = useRef<number | null>(null);
+  const sbRef = useRef<SupabaseClient | null>(null);
+  const liveRef = useRef(false);
 
   useEffect(() => {
-    const d = hydrate();
-    setData(d);
-    try {
-      const u = window.localStorage.getItem(USER_KEY);
-      if (u && d.profiles.some((p) => p.id === u)) setCurrentUserIdState(u);
-    } catch {
-      /* noop */
-    }
+    let mounted = true;
+
+    const boot = async () => {
+      // Live mode — load the workspace from Supabase for the signed-in user.
+      if (isSupabaseConfigured()) {
+        const sb = createClient();
+        if (sb) {
+          const {
+            data: { session },
+          } = await sb.auth.getSession();
+          if (session) {
+            try {
+              const { data: meRow } = await sb
+                .from("profiles")
+                .select("role")
+                .eq("id", session.user.id)
+                .single();
+              const admin = meRow?.role === "admin";
+              const loaded = await loadAll(sb, session.user.id, admin);
+              const occ = generateOccurrences(loaded.recurring, loaded.tasks);
+              loaded.tasks = [...loaded.tasks, ...occ];
+              if (!mounted) return;
+              sbRef.current = sb;
+              liveRef.current = true;
+              setCurrentUserIdState(session.user.id);
+              setData(loaded);
+              return;
+            } catch (e) {
+              console.warn("[mos] Supabase load failed, falling back to demo:", e);
+            }
+          }
+        }
+      }
+
+      // Demo mode — local seed/localStorage.
+      const d = hydrate();
+      if (!mounted) return;
+      setData(d);
+      try {
+        const u = window.localStorage.getItem(USER_KEY);
+        if (u && d.profiles.some((p) => p.id === u)) setCurrentUserIdState(u);
+      } catch {
+        /* noop */
+      }
+    };
+
+    void boot();
+    return () => {
+      mounted = false;
+    };
   }, []);
 
-  // Debounced persistence.
+  // Debounced persistence — demo mode only (live data lives in Supabase).
   useEffect(() => {
-    if (!data) return;
+    if (!data || liveRef.current) return;
     if (persistRef.current) window.clearTimeout(persistRef.current);
     persistRef.current = window.setTimeout(() => {
       try {
@@ -140,6 +194,7 @@ export function MosProvider({ children }: { children: React.ReactNode }) {
   }, [data]);
 
   const setCurrentUserId = (id: string) => {
+    if (liveRef.current) return; // identity is fixed by the Supabase session
     setCurrentUserIdState(id);
     try {
       window.localStorage.setItem(USER_KEY, id);
@@ -152,6 +207,15 @@ export function MosProvider({ children }: { children: React.ReactNode }) {
     if (!data) return null;
     const me = data.profiles.find((p) => p.id === currentUserId) ?? data.profiles[0];
     const now = () => formatISO(new Date());
+
+    // Write-through to Supabase (no-op in demo mode; skips in-memory rows).
+    const sb = sbRef.current;
+    const save = (key: string, row: object) => {
+      if (sb) saveRow(sb, key, row as Record<string, unknown>);
+    };
+    const del = (key: string, id: string) => {
+      if (sb) deleteRow(sb, key, id);
+    };
 
     const log = (
       d: MosData,
@@ -195,6 +259,7 @@ export function MosProvider({ children }: { children: React.ReactNode }) {
         completedAt: null,
       };
       setData((d) => (d ? log({ ...d, tasks: [task, ...d.tasks] }, "created", "task", task.id, `created “${task.title}”`) : d));
+      save("tasks", task);
       return task;
     };
 
@@ -207,6 +272,8 @@ export function MosProvider({ children }: { children: React.ReactNode }) {
             }
           : d,
       );
+      const cur = data.tasks.find((t) => t.id === id);
+      if (cur) save("tasks", { ...cur, ...patch });
     };
 
     const moveTask: MosContextValue["moveTask"] = (id, status) => {
@@ -228,15 +295,26 @@ export function MosProvider({ children }: { children: React.ReactNode }) {
         const t = tasks.find((x) => x.id === id);
         return log({ ...d, tasks }, "updated", "task", id, `moved “${t?.title}” to ${status.replace("_", " ")}`);
       });
+      const cur = data.tasks.find((t) => t.id === id);
+      if (cur)
+        save("tasks", {
+          ...cur,
+          status,
+          completedAt: status === "done" ? now() : null,
+          actualHours:
+            status === "done" && cur.actualHours === 0 ? cur.estimatedHours : cur.actualHours,
+        });
     };
 
     const deleteTask: MosContextValue["deleteTask"] = (id) => {
       setData((d) => (d ? { ...d, tasks: d.tasks.filter((t) => t.id !== id) } : d));
+      del("tasks", id);
     };
 
     const addComment: MosContextValue["addComment"] = (taskId, body) => {
       const c: TaskComment = { id: uid("c"), taskId, authorId: currentUserId, body, createdAt: now() };
       setData((d) => (d ? log({ ...d, comments: [...d.comments, c] }, "commented", "task", taskId, "added a comment") : d));
+      save("comments", c);
     };
 
     const createProject: MosContextValue["createProject"] = (input) => {
@@ -254,11 +332,14 @@ export function MosProvider({ children }: { children: React.ReactNode }) {
         createdAt: now(),
       };
       setData((d) => (d ? log({ ...d, projects: [project, ...d.projects] }, "created", "project", project.id, `created project “${project.name}”`) : d));
+      save("projects", project);
       return project;
     };
 
     const updateProject: MosContextValue["updateProject"] = (id, patch) => {
       setData((d) => (d ? { ...d, projects: d.projects.map((p) => (p.id === id ? { ...p, ...patch } : p)) } : d));
+      const cur = data.projects.find((p) => p.id === id);
+      if (cur) save("projects", { ...cur, ...patch });
     };
 
     const createRecurring: MosContextValue["createRecurring"] = (input) => {
@@ -279,14 +360,19 @@ export function MosProvider({ children }: { children: React.ReactNode }) {
         const occ = generateOccurrences([r], d.tasks);
         return log({ ...d, recurring: [r, ...d.recurring], tasks: [...d.tasks, ...occ] }, "created", "recurring", r.id, `created recurring “${r.title}”`);
       });
+      save("recurring", r);
     };
 
     const updateRecurring: MosContextValue["updateRecurring"] = (id, patch) => {
       setData((d) => (d ? { ...d, recurring: d.recurring.map((r) => (r.id === id ? { ...r, ...patch } : r)) } : d));
+      const cur = data.recurring.find((r) => r.id === id);
+      if (cur) save("recurring", { ...cur, ...patch });
     };
 
     const toggleRecurring: MosContextValue["toggleRecurring"] = (id) => {
       setData((d) => (d ? { ...d, recurring: d.recurring.map((r) => (r.id === id ? { ...r, active: !r.active } : r)) } : d));
+      const cur = data.recurring.find((r) => r.id === id);
+      if (cur) save("recurring", { ...cur, active: !cur.active });
     };
 
     const runRecurringNow: MosContextValue["runRecurringNow"] = (id) => {
@@ -311,50 +397,57 @@ export function MosProvider({ children }: { children: React.ReactNode }) {
         createdAt: now(),
       };
       setData((d) => (d ? log({ ...d, meetings: [m, ...d.meetings] }, "created", "meeting", m.id, `logged meeting “${m.title}”`) : d));
+      save("meetings", m);
       return m;
     };
 
     const updateMeeting: MosContextValue["updateMeeting"] = (id, patch) => {
       setData((d) => (d ? { ...d, meetings: d.meetings.map((m) => (m.id === id ? { ...m, ...patch } : m)) } : d));
+      const cur = data.meetings.find((m) => m.id === id);
+      if (cur) save("meetings", { ...cur, ...patch });
     };
 
     const addMeetingAction: MosContextValue["addMeetingAction"] = (input) => {
       const a: MeetingAction = { ...input, id: uid("ma"), taskId: null };
       setData((d) => (d ? { ...d, meetingActions: [...d.meetingActions, a] } : d));
+      save("meetingActions", a);
     };
 
     const convertActionToTask: MosContextValue["convertActionToTask"] = (actionId) => {
-      setData((d) => {
-        if (!d) return d;
-        const a = d.meetingActions.find((x) => x.id === actionId);
-        if (!a || a.taskId) return d;
-        const task: Task = {
-          id: uid("t"),
-          title: a.description,
-          assigneeId: a.assigneeId,
-          projectId: null,
-          status: "todo",
-          priority: "medium",
-          dueDate: a.dueDate,
-          estimatedHours: 1,
-          actualHours: 0,
-          attachments: [],
-          meetingId: a.meetingId,
-          createdAt: now(),
-          completedAt: null,
-        };
-        return log(
-          {
-            ...d,
-            tasks: [task, ...d.tasks],
-            meetingActions: d.meetingActions.map((x) => (x.id === actionId ? { ...x, taskId: task.id } : x)),
-          },
-          "created",
-          "task",
-          task.id,
-          `converted action item to task “${task.title}”`,
-        );
-      });
+      const a = data.meetingActions.find((x) => x.id === actionId);
+      if (!a || a.taskId) return;
+      const task: Task = {
+        id: uid("t"),
+        title: a.description,
+        assigneeId: a.assigneeId,
+        projectId: null,
+        status: "todo",
+        priority: "medium",
+        dueDate: a.dueDate,
+        estimatedHours: 1,
+        actualHours: 0,
+        attachments: [],
+        meetingId: a.meetingId,
+        createdAt: now(),
+        completedAt: null,
+      };
+      setData((d) =>
+        d
+          ? log(
+              {
+                ...d,
+                tasks: [task, ...d.tasks],
+                meetingActions: d.meetingActions.map((x) => (x.id === actionId ? { ...x, taskId: task.id } : x)),
+              },
+              "created",
+              "task",
+              task.id,
+              `converted action item to task “${task.title}”`,
+            )
+          : d,
+      );
+      save("tasks", task);
+      save("meetingActions", { ...a, taskId: task.id });
     };
 
     const addKpiUpdate: MosContextValue["addKpiUpdate"] = (kpiId, value, note) => {
@@ -365,6 +458,9 @@ export function MosProvider({ children }: { children: React.ReactNode }) {
         const k = kpis.find((x) => x.id === kpiId);
         return log({ ...d, kpis, kpiUpdates: [...d.kpiUpdates, u] }, "updated", "kpi", kpiId, `updated ${k?.name} to ${value}`);
       });
+      save("kpiUpdates", u);
+      const k = data.kpis.find((x) => x.id === kpiId);
+      if (k) save("kpis", { ...k, current: value, updatedAt: now() });
     };
 
     const createDocument: MosContextValue["createDocument"] = (input) => {
@@ -380,23 +476,27 @@ export function MosProvider({ children }: { children: React.ReactNode }) {
         updatedAt: now(),
       };
       setData((d) => (d ? { ...d, documents: [...d.documents, doc] } : d));
+      save("documents", doc);
     };
 
     const deleteDocument: MosContextValue["deleteDocument"] = (id) => {
       setData((d) =>
         d ? { ...d, documents: d.documents.filter((x) => x.id !== id && x.parentId !== id) } : d,
       );
+      del("documents", id); // children cascade in the DB via parent_id FK
     };
 
     const createAnnouncement: MosContextValue["createAnnouncement"] = (title, body, pinned = false) => {
       const a: Announcement = { id: uid("a"), authorId: currentUserId, title, body, pinned, createdAt: now() };
       setData((d) => (d ? log({ ...d, announcements: [a, ...d.announcements] }, "created", "announcement", a.id, `posted “${title}”`) : d));
+      save("announcements", a);
     };
 
     const markAllNotificationsRead: MosContextValue["markAllNotificationsRead"] = () => {
       setData((d) =>
         d ? { ...d, notifications: d.notifications.map((n) => (n.userId === currentUserId ? { ...n, read: true } : n)) } : d,
       );
+      if (sb) void sb.from("notifications").update({ read: true }).eq("user_id", currentUserId);
     };
 
     const createBudget: MosContextValue["createBudget"] = (input) => {
@@ -413,14 +513,18 @@ export function MosProvider({ children }: { children: React.ReactNode }) {
         createdAt: now(),
       };
       setData((d) => (d ? log({ ...d, budgets: [line, ...d.budgets] }, "created", "budget", line.id, `agregó presupuesto “${line.concept}”`) : d));
+      save("budgets", line);
     };
 
     const updateBudget: MosContextValue["updateBudget"] = (id, patch) => {
       setData((d) => (d ? { ...d, budgets: d.budgets.map((b) => (b.id === id ? { ...b, ...patch } : b)) } : d));
+      const cur = data.budgets.find((b) => b.id === id);
+      if (cur) save("budgets", { ...cur, ...patch });
     };
 
     const deleteBudget: MosContextValue["deleteBudget"] = (id) => {
       setData((d) => (d ? { ...d, budgets: d.budgets.filter((b) => b.id !== id) } : d));
+      del("budgets", id);
     };
 
     const addFinanceCategory: MosContextValue["addFinanceCategory"] = (name) => {
@@ -431,10 +535,12 @@ export function MosProvider({ children }: { children: React.ReactNode }) {
           ? { ...d, financeCategories: [...d.financeCategories, n] }
           : d,
       );
+      if (sb) addCategory(sb, n);
     };
 
     const removeFinanceCategory: MosContextValue["removeFinanceCategory"] = (name) => {
       setData((d) => (d ? { ...d, financeCategories: d.financeCategories.filter((c) => c !== name) } : d));
+      if (sb) removeCategory(sb, name);
     };
 
     const resetDemo = () => {
@@ -452,6 +558,7 @@ export function MosProvider({ children }: { children: React.ReactNode }) {
       setCurrentUserId,
       me,
       isAdmin: me.role === "admin",
+      live: liveRef.current,
       createTask,
       updateTask,
       moveTask,

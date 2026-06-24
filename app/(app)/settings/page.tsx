@@ -105,8 +105,14 @@ const PREFS_KEY = "mos:prefs";
 /* -------------------------------------------------------------------- Page */
 
 export default function SettingsPage() {
-  const { data, me, isAdmin, currentUserId, setCurrentUserId, resetDemo } = useMos();
+  const { data, me, isAdmin, currentUserId, setCurrentUserId, resetDemo, live } = useMos();
   const { theme, setTheme } = useTheme();
+
+  // The demo-only sections (user switcher, reset) are hidden in live mode.
+  const sections = useMemo(
+    () => (live ? SECTIONS.filter((s) => s.id !== "users" && s.id !== "danger") : SECTIONS),
+    [live],
+  );
 
   const [active, setActive] = useState<SectionId>("profile");
   const [resetOpen, setResetOpen] = useState(false);
@@ -155,7 +161,7 @@ export default function SettingsPage() {
         {/* Section nav */}
         <nav className="lg:sticky lg:top-20 lg:self-start">
           <div className="flex gap-1 overflow-x-auto pb-1 lg:flex-col lg:overflow-visible lg:pb-0">
-            {SECTIONS.map((s) => {
+            {sections.map((s) => {
               const Icon = s.icon;
               const isActive = active === s.id;
               return (

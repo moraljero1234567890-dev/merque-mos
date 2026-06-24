@@ -1,11 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { usePathname } from "next/navigation";
-import { Bell, Check, ChevronDown, Menu, Search } from "lucide-react";
+import { usePathname, useRouter } from "next/navigation";
+import { Bell, Check, ChevronDown, LogOut, Menu, Search } from "lucide-react";
 import { ALL_NAV } from "./nav";
 import { ThemeToggle } from "./theme";
 import { useMos } from "@/lib/store";
+import { createClient } from "@/lib/supabase/client";
 import { Avatar, Badge, Kbd } from "./ui";
 import { cn } from "@/lib/utils";
 
@@ -23,9 +24,17 @@ export function Topbar({
   onSearch: () => void;
 }) {
   const title = useTitle();
-  const { data, me, currentUserId, setCurrentUserId, markAllNotificationsRead } = useMos();
+  const router = useRouter();
+  const { data, me, currentUserId, setCurrentUserId, markAllNotificationsRead, live } = useMos();
   const [notifOpen, setNotifOpen] = useState(false);
   const [userOpen, setUserOpen] = useState(false);
+
+  const signOut = async () => {
+    const sb = createClient();
+    if (sb) await sb.auth.signOut();
+    router.push("/login");
+    router.refresh();
+  };
 
   const notifs = data.notifications.filter((n) => n.userId === me.id);
   const unread = notifs.filter((n) => !n.read).length;
@@ -122,30 +131,49 @@ export function Topbar({
             <div className="fixed inset-0 z-30" onClick={() => setUserOpen(false)} />
             <div className="animate-scale-in absolute right-0 z-40 mt-2 w-64 overflow-hidden rounded-xl border border-border bg-elevated shadow-xl">
               <div className="border-b border-border px-3 py-2.5">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Viendo como</span>
+                <div className="flex items-center gap-2.5">
+                  <Avatar id={me.id} name={me.name} size={32} />
+                  <div className="min-w-0 flex-1 leading-tight">
+                    <div className="truncate text-sm font-medium">{me.name}</div>
+                    <div className="truncate text-xs text-muted-foreground">{me.email}</div>
+                  </div>
                   <Badge tone={me.role === "admin" ? "primary" : "muted"}>{me.role}</Badge>
                 </div>
               </div>
-              <div className="max-h-72 overflow-y-auto p-1">
-                {data.profiles.map((p) => (
+              {live ? (
+                <div className="p-1">
                   <button
-                    key={p.id}
-                    onClick={() => {
-                      setCurrentUserId(p.id);
-                      setUserOpen(false);
-                    }}
-                    className="flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-left transition-colors hover:bg-muted"
+                    onClick={signOut}
+                    className="flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-left text-sm transition-colors hover:bg-muted"
                   >
-                    <Avatar id={p.id} name={p.name} size={28} />
-                    <div className="min-w-0 flex-1 leading-tight">
-                      <div className="truncate text-sm font-medium">{p.name}</div>
-                      <div className="truncate text-xs text-muted-foreground">{p.title}</div>
-                    </div>
-                    {p.id === currentUserId && <Check className="h-4 w-4 text-primary" />}
+                    <LogOut className="h-4 w-4 text-muted-foreground" />
+                    Cerrar sesión
                   </button>
-                ))}
-              </div>
+                </div>
+              ) : (
+                <div className="max-h-72 overflow-y-auto p-1">
+                  <div className="px-2 py-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground/70">
+                    Cambiar de usuario (demo)
+                  </div>
+                  {data.profiles.map((p) => (
+                    <button
+                      key={p.id}
+                      onClick={() => {
+                        setCurrentUserId(p.id);
+                        setUserOpen(false);
+                      }}
+                      className="flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-left transition-colors hover:bg-muted"
+                    >
+                      <Avatar id={p.id} name={p.name} size={28} />
+                      <div className="min-w-0 flex-1 leading-tight">
+                        <div className="truncate text-sm font-medium">{p.name}</div>
+                        <div className="truncate text-xs text-muted-foreground">{p.title}</div>
+                      </div>
+                      {p.id === currentUserId && <Check className="h-4 w-4 text-primary" />}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           </>
         )}

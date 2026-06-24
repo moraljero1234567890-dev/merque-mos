@@ -166,6 +166,7 @@ function ToggleSwitch({
 export default function RecurringPage() {
   const {
     data,
+    me,
     toggleRecurring,
     runRecurringNow,
   } = useMos();
@@ -173,7 +174,11 @@ export default function RecurringPage() {
 
   const today = startOfDay(new Date());
 
-  const definitions = data.recurring;
+  // Each person sees their own recurring work.
+  const definitions = useMemo(
+    () => data.recurring.filter((r) => r.assigneeId === me.id),
+    [data.recurring, me.id],
+  );
   const activeCount = definitions.filter((r) => r.active).length;
   const pausedCount = definitions.length - activeCount;
 
@@ -183,10 +188,11 @@ export default function RecurringPage() {
     return data.tasks.filter(
       (t) =>
         t.recurringId &&
+        t.assigneeId === me.id &&
         t.dueDate &&
         isWithinInterval(new Date(t.dueDate), { start, end }),
     ).length;
-  }, [data.tasks]);
+  }, [data.tasks, me.id]);
 
   const weeklyHours = useMemo(() => {
     const total = definitions
@@ -198,11 +204,11 @@ export default function RecurringPage() {
   const upcoming = useMemo(() => {
     const todayIso = format(today, "yyyy-MM-dd");
     return data.tasks
-      .filter((t) => t.recurringId != null && t.dueDate && t.dueDate >= todayIso)
+      .filter((t) => t.recurringId != null && t.assigneeId === me.id && t.dueDate && t.dueDate >= todayIso)
       .sort((a, b) => (a.dueDate ?? "").localeCompare(b.dueDate ?? ""))
       .slice(0, 8);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [data.tasks]);
+  }, [data.tasks, me.id]);
 
   const byFrequency = useMemo(
     () =>

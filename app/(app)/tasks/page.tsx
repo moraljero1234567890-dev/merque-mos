@@ -24,7 +24,7 @@ export default function TasksPage() {
 
 function TasksInner() {
   const params = useSearchParams();
-  const { data, me } = useMos();
+  const { data, me, isAdmin } = useMos();
   const [composer, setComposer] = useState<{ open: boolean; id?: string | null }>({ open: false });
   const [view, setView] = useState<"list" | "board">("list");
   const [q, setQ] = useState("");
@@ -70,11 +70,13 @@ function TasksInner() {
           <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Filtrar tareas…" className="pl-9" />
         </div>
         <div className="flex gap-2">
-          <Select value={assignee} onChange={(e) => setAssignee(e.target.value)} className="w-auto">
-            <option value="me">Mis tareas</option>
-            <option value="all">Todos</option>
-            {data.profiles.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-          </Select>
+          {isAdmin && (
+            <Select value={assignee} onChange={(e) => setAssignee(e.target.value)} className="w-auto">
+              <option value="me">Mis tareas</option>
+              <option value="all">Todos</option>
+              {data.profiles.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+            </Select>
+          )}
           <Select value={priority} onChange={(e) => setPriority(e.target.value)} className="w-auto">
             <option value="all">Toda prioridad</option>
             {PRIORITIES.map((p) => <option key={p} value={p}>{PRIORITY_META[p].label}</option>)}
