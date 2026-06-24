@@ -262,6 +262,41 @@ export interface SocialSnapshot {
   source: "manual" | "instagram";
 }
 
+export interface Supplier {
+  id: string;
+  name: string;
+  contact?: string; // persona / teléfono / correo
+  category?: string; // tipo de proveedor (impresión, textil, promocional…)
+  notes?: string;
+  createdAt: string;
+}
+
+export interface InventoryItem {
+  id: string;
+  name: string; // p. ej. "Gorras Merquellantas"
+  category: string; // Gorras, Camisetas, Material POP, Impresos…
+  quantity: number;
+  unit: string; // unidades, cajas, paquetes
+  location: string; // dónde está (Bodega Bogotá, Tienda Chapinero…)
+  unitCost: number; // costo unitario (COP)
+  supplierId: string | null; // de quién se compró
+  sku?: string;
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export const INVENTORY_CATEGORIES = [
+  "Gorras",
+  "Camisetas",
+  "Material POP",
+  "Impresos",
+  "Señalización",
+  "Promocional",
+  "Papelería",
+  "Otros",
+] as const;
+
 export interface MosData {
   profiles: Profile[];
   projects: Project[];
@@ -279,4 +314,6 @@ export interface MosData {
   budgets: BudgetLine[];
   financeCategories: string[];
   socialSnapshots: SocialSnapshot[];
+  suppliers: Supplier[];
+  inventory: InventoryItem[];
 }

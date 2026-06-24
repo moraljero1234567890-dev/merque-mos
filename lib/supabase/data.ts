@@ -24,6 +24,8 @@ export const TABLE: Record<string, string> = {
   notifications: "notifications",
   budgets: "budgets",
   socialSnapshots: "social_snapshots",
+  suppliers: "suppliers",
+  inventory: "inventory_items",
 };
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -73,6 +75,8 @@ export async function loadAll(
     budgets,
     financeCats,
     socialSnapshots,
+    suppliers,
+    inventory,
   ] = await Promise.all([
     all("profiles"),
     all("projects"),
@@ -90,6 +94,8 @@ export async function loadAll(
     all("budgets"),
     sb.from("finance_categories").select("name"),
     sb.from("social_snapshots").select("*").order("captured_at", { ascending: false }),
+    all("suppliers"),
+    sb.from("inventory_items").select("*").order("updated_at", { ascending: false }),
   ]);
 
   const m = (res: { data: unknown }) =>
@@ -112,6 +118,8 @@ export async function loadAll(
     budgets: m(budgets),
     financeCategories: ((financeCats.data as { name: string }[]) ?? []).map((r) => r.name),
     socialSnapshots: m(socialSnapshots),
+    suppliers: m(suppliers),
+    inventory: m(inventory),
   } as unknown as MosData;
 }
 

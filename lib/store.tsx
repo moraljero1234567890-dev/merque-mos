@@ -26,6 +26,7 @@ import type {
   Announcement,
   BudgetLine,
   Document,
+  InventoryItem,
   Kpi,
   KpiUpdate,
   Meeting,
@@ -34,6 +35,7 @@ import type {
   Project,
   RecurringTask,
   SocialSnapshot,
+  Supplier,
   Task,
   TaskComment,
   TaskStatus,
@@ -55,6 +57,8 @@ function hydrate(): MosData {
         parsed.budgets = parsed.budgets ?? [];
         parsed.financeCategories = parsed.financeCategories ?? [];
         parsed.socialSnapshots = parsed.socialSnapshots ?? [];
+        parsed.suppliers = parsed.suppliers ?? [];
+        parsed.inventory = parsed.inventory ?? [];
         // Top up recurring occurrences since last visit.
         const fresh = generateOccurrences(parsed.recurring, parsed.tasks);
         parsed.tasks = [...parsed.tasks, ...fresh];
@@ -121,6 +125,14 @@ interface MosContextValue {
   // social
   addSocialSnapshot: (input: Partial<SocialSnapshot>) => void;
   deleteSocialSnapshot: (id: string) => void;
+
+  // inventory & suppliers
+  createSupplier: (input: Partial<Supplier> & { name: string }) => Supplier;
+  updateSupplier: (id: string, patch: Partial<Supplier>) => void;
+  deleteSupplier: (id: string) => void;
+  createInventoryItem: (input: Partial<InventoryItem> & { name: string }) => void;
+  updateInventoryItem: (id: string, patch: Partial<InventoryItem>) => void;
+  deleteInventoryItem: (id: string) => void;
 
   // account
   changeMyPassword: (newPassword: string) => Promise<{ error?: string }>;
@@ -576,6 +588,70 @@ export function MosProvider({ children }: { children: React.ReactNode }) {
       del("socialSnapshots", id);
     };
 
+    const createSupplier: MosContextValue["createSupplier"] = (input) => {
+      const s: Supplier = {
+        id: uid("sup"),
+        name: input.name,
+        contact: input.contact,
+        category: input.category,
+        notes: input.notes,
+        createdAt: now(),
+      };
+      setData((d) => (d ? { ...d, suppliers: [s, ...d.suppliers] } : d));
+      save("suppliers", s);
+      return s;
+    };
+
+    const updateSupplier: MosContextValue["updateSupplier"] = (id, patch) => {
+      setData((d) => (d ? { ...d, suppliers: d.suppliers.map((s) => (s.id === id ? { ...s, ...patch } : s)) } : d));
+      const cur = data.suppliers.find((s) => s.id === id);
+      if (cur) save("suppliers", { ...cur, ...patch });
+    };
+
+    const deleteSupplier: MosContextValue["deleteSupplier"] = (id) => {
+      setData((d) =>
+        d
+          ? {
+              ...d,
+              suppliers: d.suppliers.filter((s) => s.id !== id),
+              inventory: d.inventory.map((i) => (i.supplierId === id ? { ...i, supplierId: null } : i)),
+            }
+          : d,
+      );
+      del("suppliers", id);
+    };
+
+    const createInventoryItem: MosContextValue["createInventoryItem"] = (input) => {
+      const item: InventoryItem = {
+        id: uid("inv"),
+        name: input.name,
+        category: input.category ?? "Otros",
+        quantity: input.quantity ?? 0,
+        unit: input.unit ?? "unidades",
+        location: input.location ?? "",
+        unitCost: input.unitCost ?? 0,
+        supplierId: input.supplierId ?? null,
+        sku: input.sku,
+        notes: input.notes,
+        createdAt: now(),
+        updatedAt: now(),
+      };
+      setData((d) => (d ? log({ ...d, inventory: [item, ...d.inventory] }, "created", "inventory", item.id, `agregó al inventario “${item.name}”`) : d));
+      save("inventory", item);
+    };
+
+    const updateInventoryItem: MosContextValue["updateInventoryItem"] = (id, patch) => {
+      const next = { ...patch, updatedAt: now() };
+      setData((d) => (d ? { ...d, inventory: d.inventory.map((i) => (i.id === id ? { ...i, ...next } : i)) } : d));
+      const cur = data.inventory.find((i) => i.id === id);
+      if (cur) save("inventory", { ...cur, ...next });
+    };
+
+    const deleteInventoryItem: MosContextValue["deleteInventoryItem"] = (id) => {
+      setData((d) => (d ? { ...d, inventory: d.inventory.filter((i) => i.id !== id) } : d));
+      del("inventory", id);
+    };
+
     const changeMyPassword: MosContextValue["changeMyPassword"] = async (newPassword) => {
       if (newPassword.length < 6) return { error: "La contraseña debe tener al menos 6 caracteres." };
       if (sb) {
@@ -630,6 +706,12 @@ export function MosProvider({ children }: { children: React.ReactNode }) {
       removeFinanceCategory,
       addSocialSnapshot,
       deleteSocialSnapshot,
+      createSupplier,
+      updateSupplier,
+      deleteSupplier,
+      createInventoryItem,
+      updateInventoryItem,
+      deleteInventoryItem,
       changeMyPassword,
       resetDemo,
     };

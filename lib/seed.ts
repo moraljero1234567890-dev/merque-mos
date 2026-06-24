@@ -158,5 +158,7 @@ export function buildSeed(): MosData {
     budgets: [],
     financeCategories,
     socialSnapshots: [],
+    suppliers: [],
+    inventory: [],
   };
 }
