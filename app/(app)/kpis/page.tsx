@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { Plus, Target, TrendingDown, TrendingUp } from "lucide-react";
@@ -14,7 +14,9 @@ import {
   Button,
   Card,
   Field,
+  Input,
   Modal,
+  Select,
   Progress,
   Ring,
   Textarea,
@@ -63,6 +65,7 @@ export default function KpisPage() {
   const [filter, setFilter] = useState<Filter>("all");
   const [detail, setDetail] = useState<string | null>(null);
   const [update, setUpdate] = useState<string | null>(null);
+  const [composer, setComposer] = useState<{ open: boolean; id?: string }>({ open: false });
 
   const kpis = data.kpis;
   const filtered = useMemo(
@@ -87,10 +90,16 @@ export default function KpisPage() {
       <PageHeader
         title="KPIs"
         description="Metas, desempeño actual y tendencias en marketing, CX y operaciones."
+        actions={
+          <Button onClick={() => setComposer({ open: true })}>
+            <Plus className="h-4 w-4" />
+            Nuevo KPI
+          </Button>
+        }
       />
 
       {kpis.length === 0 ? (
-        <EmptyKpis />
+        <EmptyKpis onCreate={() => setComposer({ open: true })} />
       ) : (
         <>
           {/* Summary rings — one per category */}
@@ -149,13 +158,148 @@ export default function KpisPage() {
         </>
       )}
 
-      <KpiDetail kpiId={detail} onClose={() => setDetail(null)} />
+      <KpiDetail
+        kpiId={detail}
+        onClose={() => setDetail(null)}
+        onEdit={(id) => {
+          setDetail(null);
+          setComposer({ open: true, id });
+        }}
+      />
       <UpdateModal kpiId={update} onClose={() => setUpdate(null)} />
+      <KpiComposer
+        open={composer.open}
+        kpiId={composer.id}
+        onClose={() => setComposer({ open: false })}
+      />
     </div>
   );
 }
 
-function EmptyKpis({ filtered }: { filtered?: boolean }) {
+const blankKpi = {
+  name: "",
+  category: "marketing" as KpiCategory,
+  ownerId: "",
+  target: "",
+  current: "",
+  unit: "",
+  direction: "up" as "up" | "down",
+};
+
+function KpiComposer({
+  open,
+  kpiId,
+  onClose,
+}: {
+  open: boolean;
+  kpiId?: string;
+  onClose: () => void;
+}) {
+  const { data, me, createKpi, updateKpi, deleteKpi } = useMos();
+  const editing = data.kpis.find((k) => k.id === kpiId);
+  const [form, setForm] = useState(blankKpi);
+
+  useEffect(() => {
+    if (!open) return;
+    if (editing) {
+      setForm({
+        name: editing.name,
+        category: editing.category,
+        ownerId: editing.ownerId ?? "",
+        target: String(editing.target),
+        current: String(editing.current),
+        unit: editing.unit,
+        direction: editing.direction,
+      });
+    } else {
+      setForm({ ...blankKpi, ownerId: me.id });
+    }
+  }, [open, editing, me.id]);
+
+  const set = (k: keyof typeof blankKpi, v: string) => setForm((f) => ({ ...f, [k]: v }));
+
+  const save = () => {
+    if (!form.name.trim()) return;
+    const payload = {
+      name: form.name.trim(),
+      category: form.category,
+      ownerId: form.ownerId || null,
+      target: Number(form.target) || 0,
+      current: Number(form.current) || 0,
+      unit: form.unit.trim(),
+      direction: form.direction,
+    };
+    if (editing) updateKpi(editing.id, payload);
+    else createKpi(payload);
+    onClose();
+  };
+
+  return (
+    <Modal
+      open={open}
+      onClose={onClose}
+      title={editing ? "Editar KPI" : "Nuevo KPI"}
+      footer={
+        <>
+          {editing && (
+            <Button
+              variant="ghost"
+              className="mr-auto text-danger hover:bg-danger/10"
+              onClick={() => {
+                deleteKpi(editing.id);
+                onClose();
+              }}
+            >
+              Eliminar
+            </Button>
+          )}
+          <Button variant="outline" onClick={onClose}>Cancelar</Button>
+          <Button onClick={save}>{editing ? "Guardar" : "Crear KPI"}</Button>
+        </>
+      }
+    >
+      <div className="space-y-4">
+        <Field label="Nombre">
+          <Input value={form.name} onChange={(e) => set("name", e.target.value)} placeholder="p. ej. NPS, Seguidores, Leads…" autoFocus />
+        </Field>
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Categoría">
+            <Select value={form.category} onChange={(e) => set("category", e.target.value)}>
+              {CATEGORY_ORDER.map((c) => (
+                <option key={c} value={c}>{KPI_CATEGORY_META[c].label}</option>
+              ))}
+            </Select>
+          </Field>
+          <Field label="Responsable">
+            <Select value={form.ownerId} onChange={(e) => set("ownerId", e.target.value)}>
+              <option value="">Sin asignar</option>
+              {data.profiles.map((p) => (
+                <option key={p.id} value={p.id}>{p.name}</option>
+              ))}
+            </Select>
+          </Field>
+          <Field label="Valor actual">
+            <Input type="number" value={form.current} onChange={(e) => set("current", e.target.value)} placeholder="0" />
+          </Field>
+          <Field label="Meta">
+            <Input type="number" value={form.target} onChange={(e) => set("target", e.target.value)} placeholder="0" />
+          </Field>
+          <Field label="Unidad">
+            <Input value={form.unit} onChange={(e) => set("unit", e.target.value)} placeholder="%, ★, /mes…" />
+          </Field>
+          <Field label="Mejor cuando…">
+            <Select value={form.direction} onChange={(e) => set("direction", e.target.value)}>
+              <option value="up">Más alto es mejor</option>
+              <option value="down">Más bajo es mejor</option>
+            </Select>
+          </Field>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
+function EmptyKpis({ filtered, onCreate }: { filtered?: boolean; onCreate?: () => void }) {
   return (
     <div className="dotgrid flex flex-col items-center justify-center rounded-xl border border-dashed border-border px-6 py-16 text-center">
       <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl border border-border bg-card text-muted-foreground shadow-sm">
@@ -167,8 +311,14 @@ function EmptyKpis({ filtered }: { filtered?: boolean }) {
       <p className="mt-1 max-w-sm text-sm text-muted-foreground">
         {filtered
           ? "Prueba otra categoría para ver las métricas monitoreadas."
-          : "Los KPIs que monitorees mostrarán aquí sus metas, progreso y tendencias."}
+          : "Crea tu primer KPI (NPS, seguidores, leads…) para monitorear metas, progreso y tendencias."}
       </p>
+      {!filtered && onCreate && (
+        <Button className="mt-5" onClick={onCreate}>
+          <Plus className="h-4 w-4" />
+          Nuevo KPI
+        </Button>
+      )}
     </div>
   );
 }
@@ -257,7 +407,15 @@ function KpiCard({
   );
 }
 
-function KpiDetail({ kpiId, onClose }: { kpiId: string | null; onClose: () => void }) {
+function KpiDetail({
+  kpiId,
+  onClose,
+  onEdit,
+}: {
+  kpiId: string | null;
+  onClose: () => void;
+  onEdit: (id: string) => void;
+}) {
   const { data } = useMos();
   const kpi = data.kpis.find((k) => k.id === kpiId);
   const history = useHistory(kpiId ?? "");
@@ -278,7 +436,16 @@ function KpiDetail({ kpiId, onClose }: { kpiId: string | null; onClose: () => vo
   ];
 
   return (
-    <Modal open={!!kpiId} onClose={onClose} size="lg">
+    <Modal
+      open={!!kpiId}
+      onClose={onClose}
+      size="lg"
+      footer={
+        <Button variant="outline" onClick={() => onEdit(kpi.id)}>
+          Editar KPI
+        </Button>
+      }
+    >
       <div className="space-y-5">
         <div>
           <div className="flex items-center gap-2">

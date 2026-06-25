@@ -105,6 +105,9 @@ interface MosContextValue {
   convertActionToTask: (actionId: string) => void;
 
   // kpis
+  createKpi: (input: Partial<Kpi> & { name: string }) => void;
+  updateKpi: (id: string, patch: Partial<Kpi>) => void;
+  deleteKpi: (id: string) => void;
   addKpiUpdate: (kpiId: string, value: number, note?: string) => void;
 
   // docs
@@ -480,6 +483,36 @@ export function MosProvider({ children }: { children: React.ReactNode }) {
       save("meetingActions", { ...a, taskId: task.id });
     };
 
+    const createKpi: MosContextValue["createKpi"] = (input) => {
+      const k: Kpi = {
+        id: uid("k"),
+        name: input.name,
+        category: input.category ?? "marketing",
+        ownerId: input.ownerId ?? null,
+        target: input.target ?? 0,
+        current: input.current ?? 0,
+        unit: input.unit ?? "",
+        direction: input.direction ?? "up",
+        updatedAt: now(),
+      };
+      setData((d) => (d ? log({ ...d, kpis: [k, ...d.kpis] }, "created", "kpi", k.id, `creó KPI “${k.name}”`) : d));
+      save("kpis", k);
+    };
+
+    const updateKpi: MosContextValue["updateKpi"] = (id, patch) => {
+      const next = { ...patch, updatedAt: now() };
+      setData((d) => (d ? { ...d, kpis: d.kpis.map((k) => (k.id === id ? { ...k, ...next } : k)) } : d));
+      const cur = data.kpis.find((k) => k.id === id);
+      if (cur) save("kpis", { ...cur, ...next });
+    };
+
+    const deleteKpi: MosContextValue["deleteKpi"] = (id) => {
+      setData((d) =>
+        d ? { ...d, kpis: d.kpis.filter((k) => k.id !== id), kpiUpdates: d.kpiUpdates.filter((u) => u.kpiId !== id) } : d,
+      );
+      del("kpis", id);
+    };
+
     const addKpiUpdate: MosContextValue["addKpiUpdate"] = (kpiId, value, note) => {
       const u: KpiUpdate = { id: uid("ku"), kpiId, value, date: formatISO(new Date(), { representation: "date" }), note };
       setData((d) => {
@@ -702,6 +735,9 @@ export function MosProvider({ children }: { children: React.ReactNode }) {
       updateMeeting,
       addMeetingAction,
       convertActionToTask,
+      createKpi,
+      updateKpi,
+      deleteKpi,
       addKpiUpdate,
       createDocument,
       deleteDocument,

@@ -177,7 +177,7 @@ export interface Kpi {
   id: string;
   name: string;
   category: KpiCategory;
-  ownerId: string;
+  ownerId: string | null;
   target: number;
   current: number;
   unit: string;
