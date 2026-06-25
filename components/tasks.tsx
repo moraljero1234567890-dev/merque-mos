@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { format, isBefore, isToday, startOfDay } from "date-fns";
 import { es } from "date-fns/locale";
-import { CalendarClock, Clock, MessageSquare, Paperclip, Repeat, Trash2 } from "lucide-react";
+import { CalendarClock, MessageSquare, Repeat, Trash2 } from "lucide-react";
 import { useMos } from "@/lib/store";
 import { DEPARTMENTS, PRIORITIES, TASK_STATUSES } from "@/lib/types";
 import type { Task, TaskStatus } from "@/lib/types";
@@ -82,15 +82,6 @@ export function TaskRow({
         </div>
         {showProject && project && (
           <span className="text-xs text-muted-foreground">{project.name}</span>
-        )}
-      </div>
-
-      <div className="hidden items-center gap-2 text-xs text-muted-foreground sm:flex">
-        {task.estimatedHours > 0 && (
-          <span className="inline-flex items-center gap-1">
-            <Clock className="h-3 w-3" />
-            {task.estimatedHours}h
-          </span>
         )}
       </div>
 
@@ -291,14 +282,6 @@ export function TaskComposer({
               <Input type="date" value={form.dueDate} onChange={(e) => set("dueDate", e.target.value)} />
             )}
           </Field>
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="Horas est.">
-              <Input type="number" min={0} step={0.5} value={form.estimatedHours} onChange={(e) => set("estimatedHours", e.target.value)} />
-            </Field>
-            <Field label="Reales">
-              <Input type="number" min={0} step={0.5} value={form.actualHours} onChange={(e) => set("actualHours", e.target.value)} />
-            </Field>
-          </div>
         </div>
 
         <Field label="Notas / bloqueos">

@@ -17,7 +17,6 @@ import { es } from "date-fns/locale";
 import {
   CalendarClock,
   Check,
-  Clock,
   PauseCircle,
   Pencil,
   Play,
@@ -84,16 +83,6 @@ function nextOccurrence(r: RecurringTask): Date {
   return cursor;
 }
 
-const WEEKLY_FACTOR: Record<Frequency, number> = {
-  daily: 5,
-  weekly: 1,
-  biweekly: 1 / 2,
-  monthly: 1 / 4.3,
-  quarterly: 1 / 13,
-  semiannual: 1 / 26,
-  yearly: 1 / 52,
-};
-
 /* ------------------------------------------------------------------ stat card */
 
 function StatCard({
@@ -105,7 +94,7 @@ function StatCard({
 }: {
   label: string;
   value: string | number;
-  icon: typeof Clock;
+  icon: typeof CalendarClock;
   tone?: string;
   hint?: string;
 }) {
@@ -195,13 +184,6 @@ export default function RecurringPage() {
     ).length;
   }, [data.tasks, me.id]);
 
-  const weeklyHours = useMemo(() => {
-    const total = definitions
-      .filter((r) => r.active)
-      .reduce((sum, r) => sum + r.estimatedHours * WEEKLY_FACTOR[r.frequency], 0);
-    return Math.round(total);
-  }, [definitions]);
-
   const upcoming = useMemo(() => {
     const todayIso = format(today, "yyyy-MM-dd");
     return data.tasks
@@ -233,11 +215,10 @@ export default function RecurringPage() {
         }
       />
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         <StatCard label="Definiciones activas" value={activeCount} icon={Repeat} tone="primary" />
         <StatCard label="En pausa" value={pausedCount} icon={PauseCircle} tone={pausedCount ? "warning" : "muted"} />
         <StatCard label="Generadas este mes" value={generatedThisMonth} icon={Sparkles} tone="info" />
-        <StatCard label="Horas recurrentes semanales" value={`${weeklyHours}h`} icon={Clock} tone="success" hint="Normalizado por frecuencia" />
       </div>
 
       {definitions.length === 0 ? (
@@ -365,10 +346,6 @@ function DefinitionRow({
       <div className="mt-3 flex flex-wrap items-center gap-1.5">
         <Badge tone="muted">{deptLabel(r.department)}</Badge>
         <PriorityBadge priority={r.priority} />
-        <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
-          <Clock className="h-3 w-3" />
-          {r.estimatedHours}h
-        </span>
         <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
           <CalendarClock className="h-3 w-3" />
           Próxima: {r.active ? format(next, "d 'de' MMM, yyyy", { locale: es }) : "En pausa"}
@@ -550,15 +527,6 @@ function RecurringComposer({
                 </option>
               ))}
             </Select>
-          </Field>
-          <Field label="Horas estimadas">
-            <Input
-              type="number"
-              min={0}
-              step={0.5}
-              value={form.estimatedHours}
-              onChange={(e) => set("estimatedHours", e.target.value)}
-            />
           </Field>
           <Field label="Fecha de anclaje">
             <Input

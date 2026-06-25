@@ -8,19 +8,14 @@ import {
   FileSpreadsheet,
   FileText,
   FolderKanban,
-  Gauge as GaugeIcon,
   Target,
   Users,
 } from "lucide-react";
 import { useMos } from "@/lib/store";
 import {
-  capacityUtilization,
   completionRate,
-  isOverdue,
-  loggedHours,
   onTimeRate,
   openTasksFor,
-  plannedHours,
   projectHealth,
   HEALTH_META,
 } from "@/lib/selectors";
@@ -56,9 +51,6 @@ function teamPerformanceReport(data: MosData): ReportTable {
     "Departamento",
     "Tareas abiertas",
     "Completadas",
-    "Utilización %",
-    "Horas planeadas",
-    "Horas registradas",
   ];
   const rows: Cell[][] = data.profiles.map((p) => {
     const completed = data.tasks.filter(
@@ -70,36 +62,6 @@ function teamPerformanceReport(data: MosData): ReportTable {
       deptLabel(p.department),
       openTasksFor(data, p.id).length,
       completed,
-      capacityUtilization(data, p),
-      plannedHours(data, p.id),
-      loggedHours(data, p.id),
-    ];
-  });
-  return { headers, rows };
-}
-
-function workloadReport(data: MosData): ReportTable {
-  const headers = [
-    "Nombre",
-    "Capacidad semanal",
-    "Horas planeadas",
-    "Utilización %",
-    "Vencidas",
-    "Estado",
-  ];
-  const rows: Cell[][] = data.profiles.map((p) => {
-    const util = capacityUtilization(data, p);
-    const overdue = data.tasks.filter(
-      (t) => t.assigneeId === p.id && isOverdue(t),
-    ).length;
-    const status = util > 100 ? "Sobrecargado" : util > 80 ? "Alto" : "Saludable";
-    return [
-      p.name,
-      `${p.weeklyCapacity}h`,
-      plannedHours(data, p.id),
-      util,
-      overdue,
-      status,
     ];
   });
   return { headers, rows };
@@ -170,15 +132,6 @@ function kpiReport(data: MosData): ReportTable {
 }
 
 // ── Summary stats for PDF stat grids ───────────────────────────────────────
-
-function avgUtilization(data: MosData) {
-  if (!data.profiles.length) return 0;
-  const total = data.profiles.reduce(
-    (s, p) => s + capacityUtilization(data, p),
-    0,
-  );
-  return Math.round(total / data.profiles.length);
-}
 
 function avgKpiAttainment(data: MosData) {
   if (!data.kpis.length) return 0;
@@ -315,7 +268,6 @@ export default function ReportsPage() {
   const { data } = useMos();
 
   const team = useMemo(() => teamPerformanceReport(data), [data]);
-  const workload = useMemo(() => workloadReport(data), [data]);
   const projects = useMemo(() => projectStatusReport(data), [data]);
   const kpis = useMemo(() => kpiReport(data), [data]);
 
@@ -323,13 +275,12 @@ export default function ReportsPage() {
   const otRate = onTimeRate(data);
   const activeProjects = data.projects.filter((p) => p.status === "active").length;
   const kpiAttainment = avgKpiAttainment(data);
-  const avgUtil = avgUtilization(data);
 
   const baseStats: { k: string; v: Cell }[] = [
     { k: "Tamaño del equipo", v: data.profiles.length },
-    { k: "Utilización promedio", v: `${avgUtil}%` },
     { k: "Tasa de finalización", v: `${cRate}%` },
     { k: "Tasa a tiempo", v: `${otRate}%` },
+    { k: "Proyectos activos", v: activeProjects },
   ];
 
   const exportFullScorecard = () => {
@@ -348,7 +299,6 @@ export default function ReportsPage() {
           { k: "Cumplimiento promedio de KPIs", v: `${kpiAttainment}%` },
         ]) +
         `<h2>Desempeño del equipo</h2>${htmlTable(team.headers, team.rows)}` +
-        `<h2>Carga de trabajo</h2>${htmlTable(workload.headers, workload.rows)}` +
         `<h2>Estado de proyectos</h2>${htmlTable(projects.headers, projects.rows)}` +
         `<h2>Reporte de KPIs</h2>${htmlTable(kpis.headers, kpis.rows)}`,
     );
@@ -358,7 +308,7 @@ export default function ReportsPage() {
     <div className="animate-fade-in">
       <PageHeader
         title="Reportes"
-        description="Genera y exporta reportes de equipo, carga de trabajo, proyectos y KPIs."
+        description="Genera y exporta reportes de equipo, proyectos y KPIs."
         actions={
           <Button onClick={exportFullScorecard}>
             <Download className="h-4 w-4" />
@@ -417,25 +367,11 @@ export default function ReportsPage() {
           <ReportCard
             icon={Users}
             title="Desempeño del equipo"
-            description="Tareas, capacidad y horas registradas por cada miembro."
+            description="Tareas abiertas y completadas por cada miembro."
             table={team}
             filename="team-performance"
             pdfTitle="Reporte de desempeño del equipo"
             stats={baseStats}
-          />
-          <ReportCard
-            icon={GaugeIcon}
-            title="Carga de trabajo"
-            description="Utilización de capacidad y carga vencida por persona."
-            table={workload}
-            filename="workload"
-            pdfTitle="Reporte de carga de trabajo"
-            stats={[
-              { k: "Tamaño del equipo", v: data.profiles.length },
-              { k: "Utilización promedio", v: `${avgUtil}%` },
-              { k: "Proyectos activos", v: activeProjects },
-              { k: "Tasa de finalización", v: `${cRate}%` },
-            ]}
           />
           <ReportCard
             icon={FolderKanban}

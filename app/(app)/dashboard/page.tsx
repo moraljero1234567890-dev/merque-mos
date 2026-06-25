@@ -6,7 +6,6 @@ import { format, isThisWeek, isToday } from "date-fns";
 import { es } from "date-fns/locale";
 import {
   AlertTriangle,
-  ArrowUpRight,
   CalendarClock,
   CheckCircle2,
   Clock,
@@ -16,11 +15,9 @@ import {
 } from "lucide-react";
 import { useMos } from "@/lib/store";
 import {
-  capacityUtilization,
   completionRate,
   isOverdue,
   onTimeRate,
-  plannedHours,
   projectHealth,
   HEALTH_META,
 } from "@/lib/selectors";
@@ -104,9 +101,6 @@ export default function DashboardPage() {
   const myKpis = data.kpis.filter((k) => k.ownerId === me.id);
   const announcements = [...data.announcements].sort((a, b) => Number(b.pinned) - Number(a.pinned));
 
-  const hours = plannedHours(data, me.id);
-  const util = capacityUtilization(data, me);
-
   const greeting = (() => {
     const h = new Date().getHours();
     return h < 12 ? "Buenos días" : h < 18 ? "Buenas tardes" : "Buenas noches";
@@ -125,11 +119,10 @@ export default function DashboardPage() {
         }
       />
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         <StatCard label="Tareas abiertas" value={open.length} icon={CheckCircle2} tone="info" />
         <StatCard label="Vencidas" value={overdue.length} icon={AlertTriangle} tone={overdue.length ? "danger" : "muted"} />
         <StatCard label="Vence esta semana" value={dueThisWeek.length} icon={CalendarClock} tone="warning" />
-        <StatCard label="Horas planeadas" value={`${hours}h`} icon={Clock} tone="success" hint={`${util}% de capacidad`} />
       </div>
 
       <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
@@ -261,7 +254,6 @@ export default function DashboardPage() {
 
 function AdminDashboard() {
   const { data } = useMos();
-  const members = data.profiles;
 
   const cRate = completionRate(data);
   const otRate = onTimeRate(data);
@@ -300,36 +292,6 @@ function AdminDashboard() {
           </Card>
         </div>
       </div>
-
-      <Card>
-        <div className="flex items-center justify-between border-b border-border px-5 py-3.5">
-          <h2 className="text-sm font-semibold">Carga del equipo</h2>
-          <Link href="/admin" className="text-xs font-medium text-primary hover:underline">
-            Mapa de calor <ArrowUpRight className="inline h-3 w-3" />
-          </Link>
-        </div>
-        <div className="space-y-3 p-5">
-          {members.map((m) => {
-            const util = capacityUtilization(data, m);
-            const tone = util > 100 ? "danger" : util > 80 ? "warning" : "success";
-            const color = tone === "danger" ? "var(--danger)" : tone === "warning" ? "var(--warning)" : "var(--success)";
-            return (
-              <div key={m.id} className="flex items-center gap-3">
-                <Avatar id={m.id} name={m.name} size={28} />
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="truncate font-medium">{m.name}</span>
-                    <span className="text-muted-foreground">{util}%</span>
-                  </div>
-                  <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-muted">
-                    <div className="h-full rounded-full transition-all" style={{ width: `${Math.min(util, 100)}%`, background: color }} />
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </Card>
     </div>
   );
 }

@@ -301,9 +301,6 @@ function ProfilePanel() {
           <Field label="Departamento">
             <Input value={deptLabel(me.department)} disabled readOnly />
           </Field>
-          <Field label="Capacidad semanal">
-            <Input value={`${me.weeklyCapacity} horas / semana`} disabled readOnly />
-          </Field>
           <Field label="Rol">
             <Input value={me.role === "admin" ? "Administrador" : "Miembro"} disabled readOnly />
           </Field>
@@ -313,7 +310,7 @@ function ProfilePanel() {
           <Info className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
           <p className="text-xs text-muted-foreground">
             Los detalles del perfil son gestionados por tu administrador. Contáctalo para actualizar
-            tu nombre, cargo o capacidad.
+            tu nombre, cargo o departamento.
           </p>
         </div>
       </div>

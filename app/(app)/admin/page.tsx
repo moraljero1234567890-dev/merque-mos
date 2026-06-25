@@ -9,7 +9,6 @@ import {
   CheckCircle2,
   ClipboardCheck,
   FolderKanban,
-  Gauge as GaugeIcon,
   LayoutGrid,
   Repeat,
   Shield,
@@ -22,13 +21,10 @@ import { DEPARTMENTS, TASK_STATUSES } from "@/lib/types";
 import type { KpiCategory } from "@/lib/types";
 import { TASK_STATUS_META, KPI_CATEGORY_META, deptLabel } from "@/lib/labels";
 import {
-  capacityUtilization,
   completionRate,
   isOverdue,
-  loggedHours,
   onTimeRate,
   openTasksFor,
-  plannedHours,
   projectHealth,
   HEALTH_META,
 } from "@/lib/selectors";
@@ -48,24 +44,16 @@ import {
 import { BarsByCategory, DonutChart } from "@/components/charts";
 import { cn } from "@/lib/utils";
 
-type Tab = "overview" | "follow" | "team" | "workload" | "projects" | "users" | "activity";
+type Tab = "overview" | "follow" | "team" | "projects" | "users" | "activity";
 
 const TABS: { key: Tab; label: string; icon: typeof LayoutGrid; live?: boolean }[] = [
   { key: "overview", label: "Resumen", icon: LayoutGrid },
   { key: "follow", label: "Seguimiento", icon: ClipboardCheck },
   { key: "team", label: "Equipo", icon: Users },
-  { key: "workload", label: "Carga", icon: GaugeIcon },
   { key: "projects", label: "Proyectos", icon: FolderKanban },
   { key: "users", label: "Usuarios", icon: UserCog, live: true },
   { key: "activity", label: "Actividad", icon: Activity },
 ];
-
-function utilTone(util: number) {
-  const tone = util > 100 ? "danger" : util > 80 ? "warning" : "success";
-  const color =
-    tone === "danger" ? "var(--danger)" : tone === "warning" ? "var(--warning)" : "var(--success)";
-  return { tone, color };
-}
 
 export default function AdminPage() {
   return (
@@ -126,7 +114,6 @@ function AdminInner() {
       {tab === "overview" && <Overview />}
       {tab === "follow" && <TeamFollowUp />}
       {tab === "team" && <Team focusUser={focusUser} />}
-      {tab === "workload" && <Workload />}
       {tab === "projects" && <ProjectHealth />}
       {tab === "users" && <UserManagement />}
       {tab === "activity" && <ActivityFeed />}
@@ -562,10 +549,9 @@ function Team({ focusUser }: { focusUser: string | null }) {
           const overdue = data.tasks.filter(
             (t) => t.assigneeId === p.id && isOverdue(t),
           ).length;
-          const util = capacityUtilization(data, p);
-          return { p, open, done, overdue, util };
+          return { p, open, done, overdue };
         })
-        .sort((a, b) => b.util - a.util),
+        .sort((a, b) => b.open - a.open),
     [data],
   );
 
@@ -579,13 +565,11 @@ function Team({ focusUser }: { focusUser: string | null }) {
               <th className="hidden px-4 py-2.5 font-medium md:table-cell">Departamento</th>
               <th className="px-4 py-2.5 font-medium">Abiertas</th>
               <th className="px-4 py-2.5 font-medium">Completadas</th>
-              <th className="px-4 py-2.5 font-medium">Utilización</th>
               <th className="px-4 py-2.5 font-medium">A tiempo</th>
             </tr>
           </thead>
           <tbody>
-            {rows.map(({ p, open, done, overdue, util }) => {
-              const { color } = utilTone(util);
+            {rows.map(({ p, open, done, overdue }) => {
               const isFocus = focusUser === p.id;
               return (
                 <tr
@@ -610,17 +594,6 @@ function Team({ focusUser }: { focusUser: string | null }) {
                   <td className="px-4 py-3 font-medium">{open}</td>
                   <td className="px-4 py-3 text-muted-foreground">{done}</td>
                   <td className="px-4 py-3">
-                    <div className="flex items-center gap-2">
-                      <div className="h-1.5 w-20 overflow-hidden rounded-full bg-muted">
-                        <div
-                          className="h-full rounded-full transition-all"
-                          style={{ width: `${Math.min(util, 100)}%`, background: color }}
-                        />
-                      </div>
-                      <span className="w-9 text-xs text-muted-foreground">{util}%</span>
-                    </div>
-                  </td>
-                  <td className="px-4 py-3">
                     {overdue ? (
                       <Badge tone="danger">{overdue} vencidas</Badge>
                     ) : (
@@ -634,76 +607,6 @@ function Team({ focusUser }: { focusUser: string | null }) {
         </table>
       </div>
     </Card>
-  );
-}
-
-/* ----------------------------------------------------------------- Workload */
-
-function Workload() {
-  const { data } = useMos();
-  const rows = useMemo(
-    () =>
-      [...data.profiles]
-        .map((m) => ({
-          m,
-          util: capacityUtilization(data, m),
-          planned: plannedHours(data, m.id),
-          logged: loggedHours(data, m.id),
-        }))
-        .sort((a, b) => b.util - a.util),
-    [data],
-  );
-
-  const overloaded = rows.filter((r) => r.util > 100).length;
-  const free = rows.filter((r) => r.util <= 80).length;
-
-  return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-3 gap-3">
-        <StatCard label="Sobrecargados" value={overloaded} icon={GaugeIcon} tone={overloaded ? "danger" : "muted"} />
-        <StatCard label="Capacidad saludable" value={free} icon={CheckCircle2} tone="success" />
-        <StatCard label="Miembros del equipo" value={rows.length} icon={Users} tone="primary" />
-      </div>
-
-      <Card>
-        <div className="border-b border-border px-5 py-3.5">
-          <h2 className="text-sm font-semibold">Mapa de calor de carga</h2>
-          <p className="mt-0.5 text-xs text-muted-foreground">
-            Horas planeadas vs capacidad semanal. Las barras se vuelven ámbar sobre 80% y rojas sobre 100%.
-          </p>
-        </div>
-        <div className="space-y-4 p-5">
-          {rows.map(({ m, util, planned, logged }) => {
-            const { color, tone } = utilTone(util);
-            return (
-              <div key={m.id} className="flex items-center gap-3">
-                <Avatar id={m.id} name={m.name} size={32} />
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="truncate font-medium">{m.name}</span>
-                    <span className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <span>
-                        {planned}h / {m.weeklyCapacity}h
-                      </span>
-                      <Badge tone={tone}>{util}%</Badge>
-                    </span>
-                  </div>
-                  <div className="mt-1.5 h-2.5 w-full overflow-hidden rounded-full bg-muted">
-                    <div
-                      className="h-full rounded-full transition-all"
-                      style={{ width: `${Math.min(util, 100)}%`, background: color }}
-                    />
-                  </div>
-                  <div className="mt-1 text-[11px] text-muted-foreground">
-                    {logged}h registradas este ciclo
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </Card>
-    </div>
   );
 }
 
