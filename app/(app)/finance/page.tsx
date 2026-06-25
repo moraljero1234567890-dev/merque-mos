@@ -231,13 +231,17 @@ export default function FinancePage() {
 
           {/* Presupuesto vs. ejecución por categoría */}
           <Card>
-            <div className="border-b border-border px-5 py-3.5">
+            <div className="flex items-center justify-between gap-2 border-b border-border px-5 py-3.5">
               <h2 className="text-sm font-semibold">
                 Presupuesto vs. ejecución por categoría
                 <span className="ml-2 font-normal text-muted-foreground">
                   {scope === "all" ? "· Histórico" : `· ${monthLabel(scope)}`}
                 </span>
               </h2>
+              <Button variant="outline" size="sm" onClick={() => setBudgetModalOpen(true)}>
+                <Pencil className="h-3.5 w-3.5" />
+                Editar presupuesto
+              </Button>
             </div>
             <div className="space-y-4 p-5">
               {byCategory.length === 0 ? (
