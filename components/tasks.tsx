@@ -2,7 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { format, isBefore, isToday, startOfDay } from "date-fns";
-import { Clock, MessageSquare, Paperclip, Repeat, Trash2 } from "lucide-react";
+import { es } from "date-fns/locale";
+import { CalendarClock, Clock, MessageSquare, Paperclip, Repeat, Trash2 } from "lucide-react";
 import { useMos } from "@/lib/store";
 import { DEPARTMENTS, PRIORITIES, TASK_STATUSES } from "@/lib/types";
 import type { Task, TaskStatus } from "@/lib/types";
@@ -104,6 +105,9 @@ export function TaskRow({
   );
 }
 
+// Marker prefix for reschedule comments (date-change history).
+const RESCHED = "🗓️";
+
 const empty = {
   title: "",
   description: "",
@@ -132,6 +136,8 @@ export function TaskComposer({
   const editing = useMemo(() => data.tasks.find((t) => t.id === taskId), [data.tasks, taskId]);
   const [form, setForm] = useState(empty);
   const [comment, setComment] = useState("");
+  const [reDate, setReDate] = useState(""); // reprogramación
+  const [reReason, setReReason] = useState("");
 
   useEffect(() => {
     if (!open) return;
@@ -157,24 +163,45 @@ export function TaskComposer({
 
   const save = () => {
     if (!form.title.trim()) return;
-    const payload = {
+    const base = {
       title: form.title.trim(),
       description: form.description,
       assigneeId: form.assigneeId || null,
       projectId: form.projectId || null,
       status: form.status,
       priority: form.priority as Task["priority"],
-      dueDate: form.dueDate || null,
       estimatedHours: Number(form.estimatedHours) || 0,
       actualHours: Number(form.actualHours) || 0,
       notes: form.notes,
     };
-    if (editing) updateTask(editing.id, payload);
-    else createTask(payload);
+    // The due date is only set at creation; afterwards it can ONLY move via a
+    // logged reschedule (so the history of delays is preserved).
+    if (editing) updateTask(editing.id, base);
+    else createTask({ ...base, dueDate: form.dueDate || null });
     onClose();
   };
 
-  const comments = data.comments.filter((c) => c.taskId === taskId);
+  // Reschedule the due date with a reason — leaves a dated comment, never a
+  // silent edit. The current date moves; the trail explains why.
+  const reschedule = () => {
+    if (!editing || !reDate) return;
+    const oldLabel = editing.dueDate
+      ? format(new Date(editing.dueDate), "d MMM yyyy", { locale: es })
+      : "sin fecha";
+    const newLabel = format(new Date(reDate), "d MMM yyyy", { locale: es });
+    updateTask(editing.id, { dueDate: reDate });
+    addComment(
+      editing.id,
+      `${RESCHED} ${oldLabel} → ${newLabel}${reReason.trim() ? ` · ${reReason.trim()}` : ""}`,
+    );
+    setForm((f) => ({ ...f, dueDate: reDate }));
+    setReDate("");
+    setReReason("");
+  };
+
+  const allComments = data.comments.filter((c) => c.taskId === taskId);
+  const reschedules = allComments.filter((c) => c.body.startsWith(RESCHED));
+  const comments = allComments.filter((c) => !c.body.startsWith(RESCHED));
 
   return (
     <Modal
@@ -252,7 +279,17 @@ export function TaskComposer({
             </Select>
           </Field>
           <Field label="Fecha límite">
-            <Input type="date" value={form.dueDate} onChange={(e) => set("dueDate", e.target.value)} />
+            {editing ? (
+              <div className="flex h-9 items-center gap-2 rounded-lg border border-border bg-muted/40 px-3 text-sm">
+                <CalendarClock className="h-4 w-4 text-muted-foreground" />
+                <span>{form.dueDate ? format(new Date(form.dueDate), "d MMM yyyy", { locale: es }) : "Sin fecha"}</span>
+                {reschedules.length > 0 && (
+                  <span className="text-xs text-muted-foreground">· reprogramada {reschedules.length}×</span>
+                )}
+              </div>
+            ) : (
+              <Input type="date" value={form.dueDate} onChange={(e) => set("dueDate", e.target.value)} />
+            )}
           </Field>
           <div className="grid grid-cols-2 gap-3">
             <Field label="Horas est.">
@@ -287,6 +324,54 @@ export function TaskComposer({
                   {TASK_STATUS_META[s].label}
                 </button>
               ))}
+            </div>
+
+            <Separator />
+
+            {/* Reprogramar fecha (con motivo) */}
+            <div>
+              <div className="mb-2 flex items-center gap-2 text-sm font-medium">
+                <CalendarClock className="h-4 w-4 text-muted-foreground" />
+                Reprogramar fecha
+              </div>
+              {reschedules.length > 0 && (
+                <div className="mb-3 space-y-1.5">
+                  {reschedules.map((c) => {
+                    const author = data.profiles.find((p) => p.id === c.authorId);
+                    return (
+                      <div key={c.id} className="flex items-start gap-2 rounded-lg border border-border bg-surface/50 px-3 py-1.5 text-xs">
+                        <CalendarClock className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                        <div className="min-w-0 flex-1">
+                          <span className="text-foreground">{c.body.replace(RESCHED, "").trim()}</span>
+                          <span className="ml-1 text-muted-foreground">
+                            — {author?.name?.split(" ")[0]}, {format(new Date(c.createdAt), "d MMM", { locale: es })}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <Input type="date" value={reDate} onChange={(e) => setReDate(e.target.value)} className="sm:w-44" />
+                <Input
+                  value={reReason}
+                  onChange={(e) => setReReason(e.target.value)}
+                  placeholder="Motivo del aplazamiento…"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      reschedule();
+                    }
+                  }}
+                />
+                <Button variant="secondary" onClick={reschedule} disabled={!reDate}>
+                  Reprogramar
+                </Button>
+              </div>
+              <p className="mt-1.5 text-xs text-muted-foreground">
+                La fecha se mueve y queda registrada. La fecha original nunca se borra del historial.
+              </p>
             </div>
 
             <Separator />
