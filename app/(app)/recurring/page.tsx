@@ -16,6 +16,7 @@ import {
 import { es } from "date-fns/locale";
 import {
   CalendarClock,
+  Check,
   Clock,
   PauseCircle,
   Pencil,
@@ -327,6 +328,13 @@ function DefinitionRow({
   const { data } = useMos();
   const assignee = data.profiles.find((p) => p.id === r.assigneeId);
   const next = nextOccurrence(r);
+  const [ran, setRan] = useState(false);
+
+  const handleRun = () => {
+    onRun();
+    setRan(true);
+    window.setTimeout(() => setRan(false), 2500);
+  };
 
   return (
     <Card
@@ -382,9 +390,16 @@ function DefinitionRow({
           )}
         </div>
         <div className="flex items-center gap-1.5">
-          <Button variant="ghost" size="sm" onClick={onRun} title="Generar la próxima ocurrencia ahora">
-            <Play className="h-3.5 w-3.5" />
-            Ejecutar ahora
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleRun}
+            disabled={ran}
+            className={cn(ran && "text-success")}
+            title="Crea la tarea de hoy para esta actividad recurrente"
+          >
+            {ran ? <Check className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
+            {ran ? "Tarea creada" : "Ejecutar ahora"}
           </Button>
           <Button variant="outline" size="sm" onClick={onEdit}>
             <Pencil className="h-3.5 w-3.5" />

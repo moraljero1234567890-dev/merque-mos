@@ -397,13 +397,21 @@ export function MosProvider({ children }: { children: React.ReactNode }) {
       if (cur) save("recurring", { ...cur, active: !cur.active });
     };
 
+    // "Ejecutar ahora": materialize this recurring definition as a real task due
+    // today (persisted, shows in Tasks/Calendar/Dashboard), regardless of where
+    // the next scheduled occurrence falls.
     const runRecurringNow: MosContextValue["runRecurringNow"] = (id) => {
-      setData((d) => {
-        if (!d) return d;
-        const r = d.recurring.find((x) => x.id === id);
-        if (!r) return d;
-        const occ = generateOccurrences([r], d.tasks, { pastDays: 0, futureDays: 0 });
-        return { ...d, tasks: [...d.tasks, ...occ] };
+      const r = data.recurring.find((x) => x.id === id);
+      if (!r) return;
+      createTask({
+        title: r.title,
+        description: r.description,
+        assigneeId: r.assigneeId,
+        priority: r.priority,
+        estimatedHours: r.estimatedHours,
+        dueDate: formatISO(new Date(), { representation: "date" }),
+        status: "todo",
+        recurringId: r.id,
       });
     };
 
