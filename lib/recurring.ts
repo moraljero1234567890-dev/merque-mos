@@ -62,11 +62,12 @@ export function generateOccurrences(
   existing: Task[],
   opts: { pastDays?: number; futureDays?: number } = {},
 ): Task[] {
-  const { pastDays = 45, futureDays = 21 } = opts;
+  // Only materialize UPCOMING occurrences. We never invent past history or
+  // auto-complete anything — a task is "done" only when someone marks it done.
+  const { pastDays = 0, futureDays = 21 } = opts;
   const now = new Date();
   const from = startOfDay(addDays(now, -pastDays));
   const to = startOfDay(addDays(now, futureDays));
-  const today = startOfDay(now);
   const have = new Set(existing.map((x) => x.id));
   const created: Task[] = [];
 
@@ -75,23 +76,21 @@ export function generateOccurrences(
     for (const date of occurrencesBetween(r, from, to)) {
       const id = `occ_${r.id}_${date}`;
       if (have.has(id)) continue;
-      const due = new Date(date);
-      const isPast = isBefore(due, today);
       created.push({
         id,
         title: r.title,
         description: r.description,
         assigneeId: r.assigneeId,
         projectId: null,
-        status: isPast ? "done" : "todo",
+        status: "todo",
         priority: r.priority,
         dueDate: date,
         estimatedHours: r.estimatedHours,
-        actualHours: isPast ? r.estimatedHours : 0,
+        actualHours: 0,
         attachments: [],
         recurringId: r.id,
-        createdAt: formatISO(due),
-        completedAt: isPast ? formatISO(due) : null,
+        createdAt: formatISO(new Date(date)),
+        completedAt: null,
       });
     }
   }

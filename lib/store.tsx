@@ -41,9 +41,9 @@ import type {
   TaskStatus,
 } from "./types";
 
-// v3 — Merquellantas team (@merquellantas.com), revised recurring catalog with
-// support/priority, and finance categories. Bumping retires stale cached data.
-const STORAGE_KEY = "mos:data:v3";
+// v4 — recurring occurrences no longer fake "done" history (upcoming only).
+// Bumping retires stale cached data with the old auto-completed occurrences.
+const STORAGE_KEY = "mos:data:v4";
 const USER_KEY = "mos:user:v1";
 
 function hydrate(): MosData {
